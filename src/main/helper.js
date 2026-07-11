@@ -10,7 +10,7 @@
  *
  * Events:
  *   'ready'       — helper installed its hook and is accepting commands
- *   'key'         {vk, down}      — a watched VK went down/up (never injected)
+ *   'key'         {vk, down, held} — a watched VK went down/up (held: physical snapshot of watched keys)
  *   'captured'    {vk, name, mods} — rebind capture result (mods: held modifier VKs)
  *   'foreground'  {exe, title}    — mirror of a foreground() reply
  *   'log'         msg             — helper-internal warning (never keystrokes)
@@ -260,7 +260,11 @@ class Helper extends EventEmitter {
         this._resolveNext(this._pingQ, true);
         break;
       case 'key':
-        this.emit('key', { vk: obj.vk | 0, down: !!obj.down });
+        this.emit('key', {
+          vk: obj.vk | 0,
+          down: !!obj.down,
+          held: Array.isArray(obj.held) ? obj.held.map(function (v) { return v | 0; }) : null,
+        });
         break;
       case 'captured': {
         const mods = [];

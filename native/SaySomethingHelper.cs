@@ -182,6 +182,9 @@ static class SaySomethingHelper
     [DllImport("user32.dll")]
     static extern IntPtr GetForegroundWindow();
 
+    [DllImport("user32.dll")]
+    static extern short GetAsyncKeyState(int vKey);
+
     [DllImport("user32.dll", SetLastError = true)]
     static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
@@ -632,7 +635,7 @@ static class SaySomethingHelper
                         HashSet<int> watched = _watched;
                         if (watched.Contains(vk))
                         {
-                            EmitKey(vk, down);
+                            EmitKey(vk, down, SnapshotHeld(watched));
                         }
                     }
                 }
@@ -960,9 +963,36 @@ static class SaySomethingHelper
         Emit("{\"evt\":\"" + evt + "\"}");
     }
 
-    static void EmitKey(int vk, bool down)
+    static void EmitKey(int vk, bool down, int[] held)
     {
-        Emit("{\"evt\":\"key\",\"vk\":" + vk + ",\"down\":" + (down ? "true" : "false") + "}");
+        StringBuilder sb = new StringBuilder();
+        sb.Append("{\"evt\":\"key\",\"vk\":");
+        sb.Append(vk);
+        sb.Append(",\"down\":");
+        sb.Append(down ? "true" : "false");
+        sb.Append(",\"held\":[");
+        if (held != null)
+        {
+            for (int i = 0; i < held.Length; i++)
+            {
+                if (i > 0) sb.Append(",");
+                sb.Append(held[i]);
+            }
+        }
+        sb.Append("]}");
+        Emit(sb.ToString());
+    }
+
+    // Real-time physical state of the watched keys (immune to key-ups missed across
+    // a UAC / lock-screen transition). GetAsyncKeyState high bit = currently down.
+    static int[] SnapshotHeld(HashSet<int> watched)
+    {
+        List<int> held = new List<int>();
+        foreach (int k in watched)
+        {
+            if ((GetAsyncKeyState(k) & 0x8000) != 0) held.Add(k);
+        }
+        return held.ToArray();
     }
 
     static void EmitCaptured(int vk, int[] mods)

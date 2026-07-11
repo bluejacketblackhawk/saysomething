@@ -249,7 +249,10 @@ function updateWatch(isRecording) {
   // modifier, so their up/down events populate heldKeys for matching (issue #1).
   const mainKeys = hotkeyMatch.watchKeysFor(hotkeyVk, hotkeyMods);
   for (let i = 0; i < mainKeys.length; i++) add(mainKeys[i]);
-  if (padEnabled && padHotkeyVk && padHotkeyVk !== hotkeyVk) {
+  if (padEnabled && padHotkeyVk) {
+    // Not gated on padHotkeyVk !== hotkeyVk: a combo may share a trigger vk with the
+    // main hotkey but differ by modifier, and both modifier sets must be watched.
+    // The set de-dupes (issue #1 review).
     const padKeys = hotkeyMatch.watchKeysFor(padHotkeyVk, padHotkeyMods);
     for (let i = 0; i < padKeys.length; i++) add(padKeys[i]);
   }
@@ -286,9 +289,9 @@ function maxUtteranceMs(st) {
   return Math.max(1, secs) * 1000;
 }
 
-function startRecording(vk) {
+function startRecording(vk, isPad) {
   const st = settingsStore.get();
-  const mode = (vk === padHotkeyVk && padEnabled) ? 'pad' : 'inject';
+  const mode = (isPad && padEnabled) ? 'pad' : 'inject';
   const s = { id: ++sessionSeq, t0: Date.now(), phase: 'pressing', vk: vk, mode: mode, maxTimer: null, aborted: false };
   recording = s;
 
@@ -531,7 +534,7 @@ function padDismiss() {
 // input handlers
 // ---------------------------------------------------------------------------
 
-function onGestureDown(vk) {
+function onGestureDown(vk, isPad) {
   if (heldVk === vk) return; // OS key-repeat while physically held — ignore
   if (heldVk !== 0) return;  // another gesture key already held — ignore the second
   heldVk = vk;
@@ -546,7 +549,7 @@ function onGestureDown(vk) {
   }
 
   // idle, or a previous session is still transcribing/injecting => new session.
-  startRecording(vk);
+  startRecording(vk, isPad);
 }
 
 function onGestureUp(vk) {
@@ -574,7 +577,15 @@ function onGestureUp(vk) {
 function onKey(info) {
   if (!info || typeof info.vk !== 'number') return;
   const vk = info.vk;
-  // Track every watched key's physical state so combo modifiers can be matched.
+  // Prefer the helper's authoritative physical-key snapshot (immune to key-ups
+  // missed across a UAC / lock-screen transition, issue #1 review); fall back to
+  // incremental tracking when an older helper sends no snapshot.
+  if (Array.isArray(info.held)) {
+    const next = Object.create(null);
+    for (let i = 0; i < info.held.length; i++) next[info.held[i] | 0] = true;
+    heldKeys = next;
+  }
+  // Apply the current event authoritatively (the snapshot can lag an in-flight up).
   if (info.down) heldKeys[vk] = true; else delete heldKeys[vk];
 
   if (vk === ESC_VK) {
@@ -582,15 +593,22 @@ function onKey(info) {
     return;
   }
 
-  const isMain = (vk === hotkeyVk);
-  const isPad = (padEnabled && vk === padHotkeyVk && padHotkeyVk !== hotkeyVk);
-  if (!isMain && !isPad) return; // a watched modifier — tracked only, never a gesture
+  const isMainVk = (vk === hotkeyVk);
+  const isPadVk = (padEnabled && vk === padHotkeyVk);
+  if (!isMainVk && !isPadVk) return; // a watched modifier — tracked only, never a gesture
 
   if (info.down) {
-    // Start only when this trigger's required modifiers are all currently held.
-    const mods = isMain ? hotkeyMods : padHotkeyMods;
-    if (!hotkeyMatch.modsSatisfied(mods, heldKeys)) return;
-    onGestureDown(vk);
+    // A trigger vk may be shared between the main and pad bindings (differing only
+    // by modifier), so resolve WHICH binding fired by its modifiers, preferring the
+    // more specific one on a tie (issue #1 review).
+    const mainOk = isMainVk && hotkeyMatch.modsSatisfied(hotkeyMods, heldKeys);
+    const padOk = isPadVk && hotkeyMatch.modsSatisfied(padHotkeyMods, heldKeys);
+    let asPad;
+    if (mainOk && padOk) asPad = (padHotkeyMods.length > hotkeyMods.length);
+    else if (padOk) asPad = true;
+    else if (mainOk) asPad = false;
+    else return; // required modifiers not held
+    onGestureDown(vk, asPad);
   } else {
     onGestureUp(vk);
   }

@@ -363,7 +363,9 @@ async function listModels(opts) {
   var api = (opts.api === 'openai') ? 'openai' : 'ollama';
   var url = base + (api === 'openai' ? '/v1/models' : '/api/tags');
   try {
-    var res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(to) });
+    // redirect:'error' keeps the loopback gate authoritative: a local server that
+    // 3xx-redirects to a remote host can NOT re-send data off-box (issue #2 review).
+    var res = await fetch(url, { method: 'GET', redirect: 'error', signal: AbortSignal.timeout(to) });
     if (!res.ok) {
       return { reachable: false, models: [], host: base, error: 'HTTP ' + res.status };
     }
@@ -426,6 +428,9 @@ async function rewrite(text, opts) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      // redirect:'error' so a 307/308 from the local endpoint can never re-POST the
+      // transcript to a remote host — the loopback gate stays authoritative (issue #2).
+      redirect: 'error',
       signal: AbortSignal.timeout(to),
     });
   } catch (e) {
