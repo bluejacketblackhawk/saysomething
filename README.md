@@ -18,7 +18,7 @@
 
 <img src="assets/screenshots/overlay-listening.png" alt="Say Something overlay pill, listening, with a live aurora waveform" width="620" />
 
-<em>The little pill while it's listening. Live waveform, a timer, a soft cyan glow. It's click-through and never steals your focus.</em>
+<em>The little pill while it's listening. Live waveform+timer.so ya know it's listenin toay</em>
 
 <br /><br />
 
@@ -164,7 +164,7 @@ Contributions welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the code's
 
 ## Support
 
-Say Something is free forever, full stop. If it saved you a subscription and you feel like it, you can [buy me a coffee ☕](https://ko-fi.com/bluejacketblackhawk). A coffee's plenty and it's totally optional. The app will never ask you for anything.
+Say Something is free forever but you can [buy me a coffee ☕](https://ko-fi.com/bluejacketblackhawk). it's not actually coffee. it's a secret second thing.
 
 ## License
 
