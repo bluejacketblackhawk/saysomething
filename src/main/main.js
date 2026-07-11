@@ -537,8 +537,15 @@ function wireIpc() {
   });
 
   // ---- drop pad renderer -> main ----
-  ipcMain.on(ipc.PAD_DROP, function () {
-    if (state && state.padDrop) { try { state.padDrop(); } catch (e) { logError('pad:drop failed', e); } }
+  ipcMain.on(ipc.PAD_MOVE, function (_evt, p) {
+    if (p && windows && windows.movePad) {
+      try { windows.movePad(p.x | 0, p.y | 0); } catch (e) { /* ignore */ }
+    }
+  });
+  ipcMain.on(ipc.PAD_PLACE, function (_evt, p) {
+    if (p && state && state.padDropAt) {
+      try { state.padDropAt(p.x | 0, p.y | 0); } catch (e) { logError('pad:place failed', e); }
+    }
   });
   ipcMain.on(ipc.PAD_COPY, function () {
     if (state && state.padCopy) { try { state.padCopy(); } catch (e) { logError('pad:copy failed', e); } }

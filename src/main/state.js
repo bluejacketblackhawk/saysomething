@@ -472,7 +472,7 @@ function inject(session, st, text, ms, fgPromise) {
 // ---------------------------------------------------------------------------
 
 // A pad-mode session: auto-copy the text, record history, hand the overlay off to
-// the floating pad. The user then places it (padDrop) or just pastes (Ctrl+V).
+// the floating pad. The user then drags it to place (padDropAt) or pastes (Ctrl+V).
 function padDeliver(session, text, ms, fgPromise) {
   return helper.copy(text).then(function () {}, function () {}).then(function () {
     return fgPromise.then(function (fg) {
@@ -494,21 +494,20 @@ function padDeliver(session, text, ms, fgPromise) {
   });
 }
 
-/** Pad "Drop here": pick a click point, then place the text there. */
-function padDrop() {
+/** Drag-drop: the user dragged the pad and released at screen point (x, y); hide
+ *  the pad and place the text there (click to focus that field, then paste). */
+function padDropAt(x, y) {
   if (!padText) return;
   const st = settingsStore.get();
   const restoreMs = (st.inject && typeof st.inject.restoreClipboardMs === 'number')
     ? st.inject.restoreClipboardMs : 300;
   const text = padText;
-  try { windows.hidePad(); } catch (e) { /* ignore */ } // get out of the way for the click
-  helper.pickPoint().then(function (pt) {
-    return helper.placeAt(text, pt.x, pt.y, restoreMs);
-  }).then(function () {
+  try { windows.hidePad(); } catch (e) { /* ignore */ } // get out of the way so the click hits the target
+  helper.placeAt(text, x, y, restoreMs).then(function () {
     padText = null; // placed successfully; pad stays hidden
-    log.info('state: drop pad placed text');
+    log.info('state: drop pad placed text at ' + x + ',' + y);
   }, function (err) {
-    log.warn('state: drop pad place cancelled/failed — ' + (err && err.message));
+    log.warn('state: drop pad place failed — ' + (err && err.message));
     // Re-show the pad so the user can retry or just paste.
     if (padText) {
       const wc = windows.getPadWC();
@@ -735,7 +734,7 @@ module.exports = {
   init: init,
   audioError: audioError,
   silence: silence,
-  padDrop: padDrop,
+  padDropAt: padDropAt,
   padCopy: padCopy,
   padDismiss: padDismiss,
 };

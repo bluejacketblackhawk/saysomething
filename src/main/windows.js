@@ -184,8 +184,8 @@ function createSettings() {
   settingsWin = new BrowserWindow({
     width: 900,
     height: 640,
-    minWidth: 720,
-    minHeight: 500,
+    minWidth: 400,
+    minHeight: 420,
     show: false,
     backgroundColor: '#0B0E14',
     title: 'Say Something',
@@ -284,6 +284,14 @@ function hidePad() {
   }
 }
 
+// Reposition the pad window to (x, y) while the user drags it (drag-follow). Keeps
+// its fixed size; x/y are the desired top-left in screen coordinates.
+function movePad(x, y) {
+  if (padWin && !padWin.isDestroyed()) {
+    try { padWin.setBounds({ x: Math.round(x), y: Math.round(y), width: PAD_W, height: PAD_H }); } catch (e) { /* ignore */ }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // first-run welcome — a one-time greeting window. The renderer closes itself
 // (window.close()); main marks the welcome seen when it opens this.
@@ -340,6 +348,7 @@ module.exports = {
   hideOverlay: hideOverlay,
   showPad: showPad,
   hidePad: hidePad,
+  movePad: movePad,
   showWelcome: showWelcome,
   positionOverlay: positionOverlay,
 

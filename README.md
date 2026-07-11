@@ -36,9 +36,9 @@
 
 ---
 
-## The drop pad: catch your words, drop them where you click
+## The drop pad: catch your words, drag them where you want
 
-Not sure which box has focus? Don't want it typing into the wrong window? Hold **Right Alt** instead of the main key and your words land in a little floating pad, already copied. Then you either hit **Ctrl+V** wherever, or click **Drop here** and click the exact spot you want it. You catch your words and drop them where they go. Every other dictation tool just fires text at whatever window's focused and hopes. This is the only one I've found that lets you aim. Wispr Flow doesn't.
+Not sure which box has focus? Don't want it typing into the wrong window? Hold **Right Alt** instead of the main key and your words land in a little floating pad, already copied. Then just **grab the pad and drag it onto the field you want**, let go, and the text drops right there. Or hit **Ctrl+V** anywhere, it's copied either way. You catch your words and carry them exactly where they go. Every other dictation tool just fires text at whatever window's focused and hopes. This is the only one I've found that lets you aim. Wispr Flow doesn't.
 
 ## What it does
 

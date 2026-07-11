@@ -8,7 +8,7 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-const SEND = ['pad:drop', 'pad:copy', 'pad:dismiss'];
+const SEND = ['pad:move', 'pad:place', 'pad:copy', 'pad:dismiss'];
 const ON = ['pad:show'];
 const INVOKE = [];
 

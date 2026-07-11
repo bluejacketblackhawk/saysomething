@@ -20,7 +20,8 @@ const CH = {
 
   // ---- Drop pad renderer ----
   PAD_SHOW: 'pad:show',             // main → pad: { text }  show the pad with this text
-  PAD_DROP: 'pad:drop',             // pad → main: user wants to place it (arm pick + placeAt)
+  PAD_MOVE: 'pad:move',             // pad → main: { x, y }  move the pad window (drag-follow)
+  PAD_PLACE: 'pad:place',           // pad → main: { x, y }  drop the text at this screen point
   PAD_COPY: 'pad:copy',             // pad → main: re-copy the text to the clipboard
   PAD_DISMISS: 'pad:dismiss',       // pad → main: close the pad
 
@@ -59,7 +60,7 @@ const OVERLAY = {
 };
 
 const PAD = {
-  send: [CH.PAD_DROP, CH.PAD_COPY, CH.PAD_DISMISS],
+  send: [CH.PAD_MOVE, CH.PAD_PLACE, CH.PAD_COPY, CH.PAD_DISMISS],
   on: [CH.PAD_SHOW],
   invoke: [],
 };

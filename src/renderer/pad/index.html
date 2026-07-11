@@ -12,8 +12,8 @@
 </head>
 <body>
   <div class="pad" id="pad">
-    <!-- drag strip: moves the window (app-region drag) -->
-    <div class="grip" id="grip" title="Drag to move">
+    <!-- the whole pad is a drag handle; release over a text box to drop -->
+    <div class="grip" id="grip" title="Drag me onto a text box">
       <span class="dots" aria-hidden="true"></span>
       <span class="label">Say Something</span>
       <button class="x" id="dismiss" title="Dismiss (Esc)" aria-label="Dismiss">✕</button>
@@ -24,10 +24,9 @@
 
     <!-- actions -->
     <div class="row">
-      <button class="btn primary" id="drop">Drop here</button>
-      <button class="btn" id="copy">Copy</button>
+      <button class="btn primary" id="copy">Copy</button>
     </div>
-    <div class="hint" id="hint">Copied. Paste anywhere, or hit “Drop here” then click a spot.</div>
+    <div class="hint" id="hint">Grab me and drag onto a text box to drop it in. Or just paste, already copied.</div>
   </div>
 
   <script src="pad.js"></script>

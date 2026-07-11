@@ -22,6 +22,7 @@ body { display: flex; align-items: stretch; justify-content: stretch; padding: 8
 
 .pad {
   position: relative;
+  cursor: grab;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -38,10 +39,10 @@ body { display: flex; align-items: stretch; justify-content: stretch; padding: 8
   transition: opacity var(--t-med) var(--ease), transform var(--t-med) var(--ease);
 }
 .pad.show { opacity: 1; transform: none; }
+.pad.dragging { cursor: grabbing; }
 
-/* drag strip */
+/* grab strip (visual handle; the whole pad is draggable via pointer events) */
 .grip {
-  -webkit-app-region: drag;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -94,8 +95,8 @@ body { display: flex; align-items: stretch; justify-content: stretch; padding: 8
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
-  user-select: text;
-  -webkit-user-select: text;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* action row */
