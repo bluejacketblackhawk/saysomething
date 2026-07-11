@@ -1,0 +1,77 @@
+{
+  "name": "saysomething",
+  "productName": "Say Something",
+  "version": "0.1.0",
+  "description": "Local-first Windows voice dictation — hold a key, speak, release; your words appear in the focused app. Private and on-device, no cloud.",
+  "license": "MIT",
+  "author": "bluejacketblackhawk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluejacketblackhawk/saysomething.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bluejacketblackhawk/saysomething/issues"
+  },
+  "homepage": "https://github.com/bluejacketblackhawk/saysomething#readme",
+  "main": "src/main/main.js",
+  "engines": {
+    "node": ">=24"
+  },
+  "files": [
+    "src",
+    "native",
+    "scripts",
+    "assets",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --smoke",
+    "setup": "node scripts/setup.js",
+    "prep": "node scripts/stage-bundle.js",
+    "dist:dir": "npm run prep && electron-builder --dir",
+    "dist": "npm run prep && electron-builder",
+    "test": "node test/formatter-test.js && node test/rewrite-test.js && node test/wav-test.js && node test/vad-test.js && node test/streaming-test.js"
+  },
+  "build": {
+    "appId": "app.saysomething.dictation",
+    "productName": "Say Something",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "native/**/*",
+      "docs/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin"
+      },
+      {
+        "from": "build-resources/models",
+        "to": "models"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/SaySomething.ico",
+      "artifactName": "SaySomething-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Say Something"
+    }
+  },
+  "devDependencies": {
+    "electron": "^43.1.0",
+    "electron-builder": "^25.1.8"
+  }
+}

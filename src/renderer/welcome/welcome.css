@@ -1,0 +1,120 @@
+/* SaySomething — first-run welcome ("aurora wisp"). Dark, calm, premium. NO orange. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--ink-900);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* subtle aurora glow from the top */
+  background:
+    radial-gradient(120% 80% at 50% -20%, rgba(103, 232, 249, 0.10), transparent 60%),
+    radial-gradient(120% 80% at 80% 0%, rgba(167, 139, 250, 0.08), transparent 55%),
+    var(--ink-900);
+}
+
+.card {
+  width: 100%;
+  max-width: 460px;
+  padding: 28px 34px 30px;
+  text-align: center;
+}
+
+.mark { display: flex; justify-content: center; margin-bottom: 8px; filter: drop-shadow(0 0 16px rgba(103,232,249,0.35)); }
+
+h1 {
+  margin: 4px 0 6px;
+  font-size: 30px;
+  font-weight: 640;
+  letter-spacing: 0.3px;
+  background: var(--aurora);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tag {
+  margin: 0 auto 22px;
+  max-width: 380px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.steps {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.steps li {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 13px;
+  background: var(--ink-800);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+}
+.steps kbd {
+  justify-self: start;
+  padding: 5px 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--ink-700);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.steps .dot {
+  justify-self: start;
+  width: 11px; height: 11px; margin-left: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--cyan), var(--teal) 70%);
+  box-shadow: 0 0 10px rgba(var(--cyan-rgb), 0.6);
+}
+
+.ready {
+  margin: 0 0 20px;
+  font-size: 12px;
+  color: var(--text-faint);
+  min-height: 16px;
+  transition: color var(--t-med) var(--ease);
+}
+.ready.done { color: var(--teal); }
+
+.go {
+  width: 100%;
+  height: 42px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--aurora-diag);
+  color: var(--text-invert);
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: filter var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.go:hover { filter: brightness(1.07); }
+.go:active { transform: translateY(1px); }

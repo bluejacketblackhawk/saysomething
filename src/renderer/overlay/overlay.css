@@ -1,0 +1,369 @@
+/* =============================================================================
+ * SaySomething — overlay pill styles ("aurora wisp")
+ * -----------------------------------------------------------------------------
+ * The overlay window is transparent, click-through and non-focusable. The page
+ * background MUST stay transparent so only the pill is visible. All animation is
+ * GPU-friendly (transform / opacity only). States are driven by [data-state] on
+ * .pill, set from the overlay:state IPC channel by overlay.js.
+ * ========================================================================== */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;   /* window is transparent — never paint the page */
+  overflow: hidden;
+  font-family: var(--font);
+  color: var(--text);
+  /* the window itself is click-through; belt-and-braces for any stray hits */
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------------------------------------------------------------------------
+ * The pill
+ * ------------------------------------------------------------------------- */
+.pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 18px);
+  max-width: 302px;
+  height: 54px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+
+  /* ink fill + aurora gradient hairline ring (padding-box / border-box trick) */
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--ink-800), var(--ink-800)) padding-box,
+    var(--aurora-diag) border-box;
+
+  box-shadow: var(--shadow-pill);
+
+  /* rise-in / fade-out — a wisp of vapour. transform+opacity only. */
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  transition:
+    opacity var(--t-med) var(--ease),
+    transform var(--t-med) var(--ease),
+    box-shadow var(--t-slow) var(--ease);
+  will-change: transform, opacity;
+}
+
+/* visible whenever not hidden */
+.pill:not([data-state="hidden"]) {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.pill[data-state="hidden"] {
+  pointer-events: none;
+}
+
+/* soft aurora bloom behind the pill (opacity-animated only) */
+.pill::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: var(--aurora-soft);
+  opacity: 0;
+  filter: blur(14px);
+  z-index: -1;
+  transition: opacity var(--t-slow) var(--ease);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Lead icon slot (dot / spinner / check / alert) — one visible per state
+ * ------------------------------------------------------------------------- */
+.lead {
+  position: relative;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+}
+
+.lead > * {
+  grid-area: 1 / 1;             /* stack all glyphs; toggle visibility per state */
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+  pointer-events: none;
+}
+
+/* pulsing wisp dot */
+.lead .dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--cyan), var(--teal) 70%);
+  box-shadow: 0 0 10px rgba(var(--cyan-rgb), 0.7);
+}
+
+/* orbit spinner */
+.lead .spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(var(--cyan-rgb), 0.16);
+  border-top-color: var(--cyan);
+  border-right-color: var(--teal);
+  animation: orbit 0.85s linear infinite;
+}
+
+.lead svg { width: 20px; height: 20px; display: block; }
+.lead .ic-check { color: var(--success); }
+.lead .ic-alert { color: var(--danger); }
+
+/* ---------------------------------------------------------------------------
+ * Body: waveform OR message text (only one shown per state)
+ * ------------------------------------------------------------------------- */
+.body {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+/* waveform */
+.wave {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.wave .bar {
+  flex: 0 0 3px;
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  transform: scaleY(0.08);
+  transform-origin: center center;
+  /* colour set per-bar inline by overlay.js to sweep cyan->teal->violet */
+  background: var(--cyan);
+  will-change: transform;
+}
+
+/* message text */
+.msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  font-size: 13.5px;
+  line-height: 1.2;
+  letter-spacing: 0.1px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.msg .label { color: var(--text-muted); }
+
+/* live partial transcript (shown only while listening, once words arrive) */
+.partial {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: 0.1px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+  pointer-events: none;
+}
+/* soft blinking caret — a quiet "listening live" affordance */
+.partial::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 2px;
+  height: 15px;
+  margin-left: 3px;
+  border-radius: 1px;
+  background: var(--cyan);
+  box-shadow: 0 0 6px rgba(var(--cyan-rgb), 0.7);
+  animation: caret 1.05s steps(1) infinite;
+}
+
+/* ---------------------------------------------------------------------------
+ * Trailing: mm:ss timer
+ * ------------------------------------------------------------------------- */
+.timer {
+  flex: 0 0 auto;
+  min-width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+/* ===========================================================================
+ * State variants
+ * ======================================================================== */
+
+/* --- listening ----------------------------------------------------------- */
+.pill[data-state="listening"] {
+  box-shadow: var(--shadow-pill), var(--glow-cyan);
+}
+.pill[data-state="listening"]::before { opacity: 0.5; animation: bloom 2.6s var(--ease-soft) infinite; }
+.pill[data-state="listening"] .wave  { opacity: 1; }
+.pill[data-state="listening"] .timer { opacity: 1; }
+
+/* once live partial text arrives, cross-fade the waveform out for the words */
+.pill[data-state="listening"].has-partial .wave    { opacity: 0; }
+.pill[data-state="listening"].has-partial .partial  { opacity: 1; }
+.pill[data-state="listening"] .lead .dot {
+  opacity: 1; transform: scale(1);
+  animation: pulse 1.7s var(--ease-soft) infinite;
+}
+
+/* --- latched auto-stop countdown ----------------------------------------- */
+/* While a latched session is armed for auto-stop, --vad (0..1) rises with the
+ * accumulated silence. The pill quietly dims toward the cutoff so the stop never
+ * feels random. Opacity-only; aurora tokens only; NO orange. */
+.pill[data-state="listening"][data-vad="on"]::before {
+  animation: none;
+  opacity: calc(0.5 - var(--vad, 0) * 0.42);
+}
+.pill[data-state="listening"][data-vad="on"] .wave {
+  opacity: calc(1 - var(--vad, 0) * 0.5);
+}
+.pill[data-state="listening"][data-vad="on"] .timer {
+  opacity: calc(1 - var(--vad, 0) * 0.72);
+}
+.pill[data-state="listening"][data-vad="on"] .lead .dot {
+  opacity: calc(1 - var(--vad, 0) * 0.45);
+}
+
+/* A live partial ALWAYS wins over the VAD dim (same specificity as the VAD .wave
+ * rule above, so this must come later in source order): hide the waveform and
+ * show the words even while the auto-stop countdown dims the rest of the pill.
+ * Without this, the default tap-to-latch + auto-stop path keeps data-vad="on"
+ * for the whole session and the still-animating bars render over the text. */
+.pill[data-state="listening"].has-partial .wave    { opacity: 0; }
+.pill[data-state="listening"].has-partial .partial  { opacity: 1; }
+
+/* --- transcribing -------------------------------------------------------- */
+.pill[data-state="transcribing"] {
+  box-shadow: var(--shadow-pill), var(--glow-cyan);
+}
+.pill[data-state="transcribing"]::before { opacity: 0.4; }
+.pill[data-state="transcribing"] .lead .spinner { opacity: 1; transform: scale(1); }
+.pill[data-state="transcribing"] .msg { opacity: 1; transform: none; }
+
+/* --- success (auto-fades to hidden over ~1200ms, main also sends hidden) -- */
+.pill[data-state="success"] {
+  box-shadow: var(--shadow-pill), var(--glow-teal);
+  animation: successFade 1200ms var(--ease) forwards;
+}
+.pill[data-state="success"]::before {
+  opacity: 0.45;
+  background: linear-gradient(120deg,
+    rgba(var(--teal-rgb), 0.9), rgba(var(--cyan-rgb), 0.8));
+}
+.pill[data-state="success"] .lead .ic-check { opacity: 1; transform: scale(1); }
+.pill[data-state="success"] .msg { opacity: 1; transform: none; }
+
+/* --- cancelled ----------------------------------------------------------- */
+.pill[data-state="cancelled"] {
+  background:
+    linear-gradient(var(--ink-800), var(--ink-800)) padding-box,
+    linear-gradient(120deg, var(--border-strong), var(--border)) border-box;
+}
+.pill[data-state="cancelled"] .lead .dot {
+  opacity: 1; transform: scale(1);
+  background: var(--text-faint);
+  box-shadow: none;
+}
+.pill[data-state="cancelled"] .msg { opacity: 1; transform: none; }
+
+/* --- nothing-heard ------------------------------------------------------- */
+.pill[data-state="nothing-heard"] {
+  background:
+    linear-gradient(var(--ink-800), var(--ink-800)) padding-box,
+    linear-gradient(120deg, var(--border-strong), var(--border)) border-box;
+}
+.pill[data-state="nothing-heard"] .lead .dot {
+  opacity: 1; transform: scale(1);
+  background: var(--text-faint);
+  box-shadow: none;
+}
+.pill[data-state="nothing-heard"] .msg { opacity: 1; transform: none; }
+
+/* --- error --------------------------------------------------------------- */
+.pill[data-state="error"] {
+  box-shadow: var(--shadow-pill), var(--glow-danger);
+  background:
+    linear-gradient(var(--ink-800), var(--ink-800)) padding-box,
+    linear-gradient(120deg, var(--danger), rgba(var(--danger-rgb), 0.4)) border-box;
+}
+.pill[data-state="error"] .lead .ic-alert { opacity: 1; transform: scale(1); }
+.pill[data-state="error"] .msg { opacity: 1; transform: none; }
+
+/* ===========================================================================
+ * Keyframes (transform / opacity only)
+ * ======================================================================== */
+@keyframes orbit { to { transform: rotate(360deg); } }
+
+@keyframes caret { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+
+@keyframes pulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.85; }
+  50%      { transform: scale(1.15); opacity: 1; }
+}
+
+@keyframes bloom {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.6; }
+}
+
+@keyframes successFade {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  78%  { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.99); }
+}
+
+/* Respect reduced-motion: keep state legibility, drop the looping motion */
+@media (prefers-reduced-motion: reduce) {
+  .lead .spinner { animation-duration: 1.6s; }
+  .lead .dot,
+  .partial::after,
+  .pill[data-state="listening"]::before { animation: none; }
+  .partial::after { opacity: 1; }
+  .pill { transition-duration: 1ms; }
+}

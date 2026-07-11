@@ -1,0 +1,24 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" fill="none" role="img" aria-label="Say Something voice waveform">
+  <defs>
+    <linearGradient id="aurora" x1="28" y1="128" x2="228" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67E8F9"/>
+      <stop offset="0.5" stop-color="#5EEAD4"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%" filterUnits="objectBoundingBox">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Abstract voice waveform (five aurora bars) — deliberately NOT a letterform. -->
+  <g filter="url(#glow)" fill="url(#aurora)">
+    <rect x="28"  y="78" width="24" height="100" rx="12"/>
+    <rect x="72"  y="40" width="24" height="176" rx="12"/>
+    <rect x="116" y="66" width="24" height="124" rx="12"/>
+    <rect x="160" y="24" width="24" height="208" rx="12"/>
+    <rect x="204" y="86" width="24" height="84"  rx="12"/>
+  </g>
+</svg>

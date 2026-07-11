@@ -1,0 +1,141 @@
+/* =============================================================================
+ * SaySomething — drop pad ("aurora wisp")
+ * The pad window is frameless + transparent; only the card paints. The grip is a
+ * drag region (moves the window); buttons are no-drag. GPU-friendly, NO orange.
+ * ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--font);
+  color: var(--text);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body { display: flex; align-items: stretch; justify-content: stretch; padding: 8px; }
+
+.pad {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--r-lg);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--ink-800), var(--ink-800)) padding-box,
+    var(--aurora-diag) border-box;
+  box-shadow: var(--shadow-lg), var(--glow-cyan);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(6px) scale(0.99);
+  transition: opacity var(--t-med) var(--ease), transform var(--t-med) var(--ease);
+}
+.pad.show { opacity: 1; transform: none; }
+
+/* drag strip */
+.grip {
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 8px 0 10px;
+  background: linear-gradient(var(--ink-750), var(--ink-800));
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+}
+.grip .dots {
+  width: 18px; height: 10px; flex: 0 0 auto;
+  background:
+    radial-gradient(circle 1.3px at 3px 3px, var(--text-faint) 99%, transparent) ,
+    radial-gradient(circle 1.3px at 9px 3px, var(--text-faint) 99%, transparent),
+    radial-gradient(circle 1.3px at 15px 3px, var(--text-faint) 99%, transparent),
+    radial-gradient(circle 1.3px at 3px 7px, var(--text-faint) 99%, transparent),
+    radial-gradient(circle 1.3px at 9px 7px, var(--text-faint) 99%, transparent),
+    radial-gradient(circle 1.3px at 15px 7px, var(--text-faint) 99%, transparent);
+}
+.grip .label {
+  flex: 1 1 auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  text-transform: lowercase;
+}
+.grip .x {
+  -webkit-app-region: no-drag;
+  flex: 0 0 auto;
+  width: 18px; height: 18px;
+  display: grid; place-items: center;
+  border: none; border-radius: 6px;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 12px;
+  cursor: pointer;
+}
+.grip .x:hover { background: var(--ink-650); color: var(--text); }
+
+/* text body */
+.text {
+  flex: 1 1 auto;
+  min-height: 40px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 11px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* action row */
+.row {
+  display: flex;
+  gap: 8px;
+  padding: 0 10px;
+}
+.btn {
+  -webkit-app-region: no-drag;
+  flex: 1 1 auto;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--ink-700);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 560;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.btn:hover { background: var(--ink-650); border-color: var(--border-strong); }
+.btn:active { transform: translateY(1px); }
+.btn.primary {
+  flex: 2 1 auto;
+  border-color: transparent;
+  color: var(--text-invert);
+  background: var(--aurora-diag);
+  font-weight: 650;
+}
+.btn.primary:hover { filter: brightness(1.06); background: var(--aurora-diag); }
+
+.hint {
+  padding: 7px 12px 10px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-faint);
+}
+.hint.armed { color: var(--cyan); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pad { transition-duration: 1ms; }
+}

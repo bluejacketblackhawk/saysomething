@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; media-src 'self' blob:; connect-src 'self'" />
+  <title>Say Something Settings</title>
+  <link rel="stylesheet" href="../shared/theme.css" />
+  <link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ==================== left tab rail ==================== -->
+    <nav class="rail" aria-label="Settings sections">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 256 256" aria-hidden="true">
+          <defs>
+            <linearGradient id="railAurora" x1="28" y1="128" x2="228" y2="128" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#67E8F9"/>
+              <stop offset="0.5" stop-color="#5EEAD4"/>
+              <stop offset="1" stop-color="#A78BFA"/>
+            </linearGradient>
+          </defs>
+          <g fill="url(#railAurora)">
+            <rect x="28"  y="78" width="24" height="100" rx="12"/>
+            <rect x="72"  y="40" width="24" height="176" rx="12"/>
+            <rect x="116" y="66" width="24" height="124" rx="12"/>
+            <rect x="160" y="24" width="24" height="208" rx="12"/>
+            <rect x="204" y="86" width="24" height="84"  rx="12"/>
+          </g>
+        </svg>
+        <span class="brand-name">Say Something</span>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab is-active" role="tab" data-tab="general">General</button>
+        <button class="tab" role="tab" data-tab="hotkey">Hotkey</button>
+        <button class="tab" role="tab" data-tab="model">Model</button>
+        <button class="tab" role="tab" data-tab="rewrite">Rewrite</button>
+        <button class="tab" role="tab" data-tab="dictionary">Dictionary</button>
+        <button class="tab" role="tab" data-tab="history">History</button>
+        <button class="tab" role="tab" data-tab="about">About</button>
+      </div>
+
+      <div class="rail-foot">
+        <span class="dot" id="rail-status-dot"></span>
+        <span id="rail-status-text">on-device · private</span>
+      </div>
+    </nav>
+
+    <!-- ==================== content ==================== -->
+    <main class="content">
+
+      <!-- ---------- General ---------- -->
+      <section class="page is-active" id="tab-general" role="tabpanel">
+        <h1>General</h1>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Language</h2>
+            <p class="hint">Non-English languages need a multilingual model on the Model tab.</p>
+          </div>
+          <div class="row">
+            <label class="row-label" for="language">Dictation language</label>
+            <select id="language" class="select"></select>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Formatting</h2></div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Remove filler words</div><div class="row-sub">Strips "um", "uh", "erm" and similar.</div></div>
+            <label class="switch"><input type="checkbox" id="fmt-fillerRemoval"><span class="track"></span></label>
+          </div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Voice commands</div><div class="row-sub">"new line" and "new paragraph" become breaks.</div></div>
+            <label class="switch"><input type="checkbox" id="fmt-voiceCommands"><span class="track"></span></label>
+          </div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Trailing space</div><div class="row-sub">Append a space so words don't run together.</div></div>
+            <label class="switch"><input type="checkbox" id="fmt-trailingSpace"><span class="track"></span></label>
+          </div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Auto-capitalize</div><div class="row-sub">Capitalize the first letter of the result.</div></div>
+            <label class="switch"><input type="checkbox" id="fmt-autoCapitalize"><span class="track"></span></label>
+          </div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Strip artifacts</div><div class="row-sub">Removes "[BLANK_AUDIO]", "[Music]", "♪" and the like.</div></div>
+            <label class="switch"><input type="checkbox" id="fmt-artifactStrip"><span class="track"></span></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Microphone</h2></div>
+          <div class="row">
+            <label class="row-label" for="mic-device">Input device</label>
+            <select id="mic-device" class="select"></select>
+          </div>
+          <div class="row" id="mic-grant-row" hidden>
+            <div class="row-sub">Grant microphone access to see device names.</div>
+            <button class="btn ghost" id="mic-grant">Enable device names</button>
+          </div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Warm mic (pre-roll)</div><div class="row-sub">Capture a moment before the keypress so your first word is never clipped.</div></div>
+            <label class="switch"><input type="checkbox" id="mic-warm"><span class="track"></span></label>
+          </div>
+          <div class="row slider-row">
+            <label class="row-label" for="mic-preroll">Pre-roll</label>
+            <input type="range" id="mic-preroll" min="0" max="2000" step="50" class="range">
+            <output class="readout" id="mic-preroll-out">800 ms</output>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Text insertion</h2></div>
+          <div class="row">
+            <div class="row-label">Insert mode</div>
+            <div class="segmented" id="inject-mode">
+              <label><input type="radio" name="injectMode" value="paste" id="inject-paste"><span>Paste</span></label>
+              <label><input type="radio" name="injectMode" value="type" id="inject-type"><span>Type</span></label>
+            </div>
+          </div>
+          <div class="row slider-row">
+            <label class="row-label" for="inject-restore">Restore clipboard after</label>
+            <input type="range" id="inject-restore" min="0" max="2000" step="50" class="range">
+            <output class="readout" id="inject-restore-out">300 ms</output>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Overlay</h2></div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Start / stop chime</div><div class="row-sub">Soft tones when listening begins and ends.</div></div>
+            <label class="switch"><input type="checkbox" id="overlay-chime"><span class="track"></span></label>
+          </div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Live preview</div><div class="row-sub">Show words in the pill as you speak. Runs locally on the warm engine; preview only. The inserted text is always the final accurate pass.</div></div>
+            <label class="switch"><input type="checkbox" id="overlay-streaming"><span class="track"></span></label>
+          </div>
+          <div class="row slider-row">
+            <label class="row-label" for="overlay-offset">Distance from bottom</label>
+            <input type="range" id="overlay-offset" min="0" max="200" step="4" class="range">
+            <output class="readout" id="overlay-offset-out">48 px</output>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Startup</h2></div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Start with Windows</div><div class="row-sub">Launch Say Something automatically at sign-in.</div></div>
+            <label class="switch"><input type="checkbox" id="launch-at-login"><span class="track"></span></label>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Hotkey ---------- -->
+      <section class="page" id="tab-hotkey" role="tabpanel">
+        <h1>Hotkey</h1>
+        <div class="card">
+          <div class="card-head">
+            <h2>Dictation key</h2>
+            <p class="hint">Hold to talk. Tap (under 250 ms) to latch hands-free; tap again to finish. Esc cancels while recording.</p>
+          </div>
+          <div class="hotkey-display">
+            <kbd id="hotkey-name">Right Ctrl</kbd>
+          </div>
+          <div class="row">
+            <div class="row-sub" id="hotkey-status">&nbsp;</div>
+            <button class="btn primary" id="hotkey-capture">Change hotkey</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Drop pad</h2>
+            <p class="hint">Hold this key instead → speak → a little pad appears with your text, already copied. Drag/click it wherever you want, or just paste. Great when you're not sure which field is focused.</p>
+          </div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Enable drop pad</div><div class="row-sub">Adds a second dictation key that catches your words in a movable pad.</div></div>
+            <label class="switch"><input type="checkbox" id="pad-enabled"><span class="track"></span></label>
+          </div>
+          <div class="hotkey-display">
+            <kbd id="padhotkey-name">Right Alt</kbd>
+          </div>
+          <div class="row">
+            <div class="row-sub" id="padhotkey-status">&nbsp;</div>
+            <button class="btn" id="padhotkey-capture">Change pad key</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Auto-stop</h2>
+            <p class="hint">In hands-free (tap) mode, finish automatically when you stop speaking. Tap, talk, done. Tapping again still finishes manually, and hold-to-talk is never auto-stopped.</p>
+          </div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Auto-stop after silence</div><div class="row-sub">End a latched recording once you've been quiet for a moment.</div></div>
+            <label class="switch"><input type="checkbox" id="autostop-enabled"><span class="track"></span></label>
+          </div>
+          <div class="row slider-row">
+            <label class="row-label" for="autostop-silence">Silence before stopping</label>
+            <input type="range" id="autostop-silence" min="1000" max="5000" step="250" class="range">
+            <output class="readout" id="autostop-silence-out">2.0 s</output>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Model ---------- -->
+      <section class="page" id="tab-model" role="tabpanel">
+        <h1>Model</h1>
+        <p class="hint page-hint">New here? <strong>small.en</strong> (Recommended) is the best balance for English on most machines. Download it, then set it active. Larger models are more accurate but slower and use more disk; the multilingual ones handle other languages.</p>
+        <div id="model-list" class="model-list">
+          <div class="empty">Loading models…</div>
+        </div>
+      </section>
+
+      <!-- ---------- Rewrite ---------- -->
+      <section class="page" id="tab-rewrite" role="tabpanel">
+        <h1>Rewrite</h1>
+        <p class="hint page-hint">Optionally polish each dictation with a local AI model before it's inserted. Runs entirely on your machine through <strong>Ollama</strong>. No cloud, no account. Your selected model rewrites the transcript; if anything goes wrong, your original words are inserted unchanged.</p>
+
+        <div class="card">
+          <div class="card-head"><h2>AI rewrite</h2></div>
+          <div class="row toggle-row">
+            <div><div class="row-label">Rewrite before inserting</div><div class="row-sub">Send the transcript to a local Ollama model and insert its cleaned-up version.</div></div>
+            <label class="switch"><input type="checkbox" id="rewrite-enabled"><span class="track"></span></label>
+          </div>
+          <div class="row">
+            <label class="row-label" for="rewrite-style">Style</label>
+            <select id="rewrite-style" class="select">
+              <option value="cleanup">Clean up</option>
+              <option value="professional">Professional</option>
+              <option value="casual">Casual</option>
+              <option value="bullets">Bullet points</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Ollama model</h2>
+            <p class="hint">The local model that does the rewriting. Bigger models read better but are slower.</p>
+          </div>
+          <div class="row">
+            <label class="row-label" for="rewrite-model">Model</label>
+            <div class="rewrite-model-row">
+              <select id="rewrite-model" class="select"></select>
+              <button class="btn ghost" id="rewrite-refresh">Refresh</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="row-sub" id="rewrite-status">Checking for Ollama…</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Timeout</h2></div>
+          <p class="hint">A rewrite is given up to 10 seconds. If the model is slow, unreachable, or returns something unusable, Say Something inserts your original transcript instead. Nothing is ever lost.</p>
+        </div>
+      </section>
+
+      <!-- ---------- Dictionary ---------- -->
+      <section class="page" id="tab-dictionary" role="tabpanel">
+        <h1>Dictionary</h1>
+        <div class="card">
+          <div class="card-head">
+            <h2>Custom words</h2>
+            <p class="hint">Names, jargon and spellings you want transcribed correctly. Fed to whisper as a prompt.</p>
+          </div>
+          <div class="dict-input-row">
+            <input type="text" id="dict-input" class="text-input" placeholder="Add a word or name…" maxlength="64" autocomplete="off" spellcheck="false">
+            <button class="btn primary" id="dict-add">Add</button>
+          </div>
+          <div id="dict-chips" class="chips"></div>
+        </div>
+      </section>
+
+      <!-- ---------- History ---------- -->
+      <section class="page" id="tab-history" role="tabpanel">
+        <h1>History</h1>
+        <div class="card">
+          <div class="card-head history-head">
+            <div>
+              <h2>Recent transcriptions</h2>
+              <p class="hint">Click any entry to copy it. Stored locally only.</p>
+            </div>
+            <div class="history-actions">
+              <label class="switch small"><input type="checkbox" id="history-enabled"><span class="track"></span></label>
+              <span class="row-sub">Keep history</span>
+              <button class="btn ghost danger" id="history-clear">Clear all</button>
+            </div>
+          </div>
+          <div id="history-list" class="history-list">
+            <div class="empty">No transcriptions yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- About ---------- -->
+      <section class="page" id="tab-about" role="tabpanel">
+        <h1>About</h1>
+        <div class="card about-hero">
+          <svg class="about-mark" viewBox="0 0 256 256" aria-hidden="true">
+            <g fill="url(#railAurora)">
+              <rect x="28"  y="78" width="24" height="100" rx="12"/>
+              <rect x="72"  y="40" width="24" height="176" rx="12"/>
+              <rect x="116" y="66" width="24" height="124" rx="12"/>
+              <rect x="160" y="24" width="24" height="208" rx="12"/>
+              <rect x="204" y="86" width="24" height="84"  rx="12"/>
+            </g>
+          </svg>
+          <div>
+            <div class="about-title">Say Something</div>
+            <div class="about-version">version <span id="about-version">…</span></div>
+            <div class="row-sub">Local-first voice dictation. No accounts, no cloud, no telemetry.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Status</h2></div>
+          <div class="row status-row">
+            <div class="row-label">Whisper engine</div>
+            <div class="status" id="about-whisper"><span class="dot"></span><span>checking…</span></div>
+          </div>
+          <div class="row status-row">
+            <div class="row-label">Input helper</div>
+            <div class="status" id="about-helper"><span class="dot"></span><span>checking…</span></div>
+          </div>
+          <div class="row">
+            <div class="row-sub" id="about-whisper-detail">&nbsp;</div>
+            <button class="btn ghost" id="about-restart">Restart engine</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Privacy</h2></div>
+          <p class="hint">Audio never leaves your machine. Transcription runs on a local whisper server bound to 127.0.0.1. The only time Say Something touches the internet is when you download a model.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

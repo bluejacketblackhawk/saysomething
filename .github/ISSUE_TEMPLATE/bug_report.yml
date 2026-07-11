@@ -1,0 +1,46 @@
+name: Bug report
+description: Something isn't working right
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Fill in what you can — even a
+        rough description helps. Logs live at `%APPDATA%\SaySomething\logs\SaySomething.log`
+        and never contain your keystrokes, audio, or transcripts.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Hold Right Ctrl and say "…"
+        2. Release
+        3. …
+  - type: input
+    id: version
+    attributes:
+      label: Say Something version
+      placeholder: e.g. 0.1.0
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      placeholder: e.g. Windows 11 23H2
+  - type: input
+    id: model
+    attributes:
+      label: Model in use
+      placeholder: e.g. small.en
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines (optional)
+      description: Paste anything relevant from the log file. Redact whatever you don't want public.
+      render: text

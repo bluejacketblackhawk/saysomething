@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Lint, test & compile helper
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax-check all JS (node --check)
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Recurse -Path src, scripts, test -Filter *.js
+          $failed = $false
+          foreach ($f in $files) {
+            node --check $f.FullName
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "syntax error: $($f.FullName)"
+              $failed = $true
+            } else {
+              Write-Host "ok: $($f.FullName)"
+            }
+          }
+          if ($failed) { exit 1 }
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Compile native helper (Windows csc.exe)
+        shell: cmd
+        run: native\build.cmd
+
+      - name: Helper self-test
+        run: node test/helper-selftest.js

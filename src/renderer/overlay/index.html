@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Local-first: block all external access; allow same-origin scripts plus
+       blob: for the AudioWorklet / chime that audio.js owns. No network. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob: data:; connect-src 'self';" />
+  <title>SaySomething overlay</title>
+  <link rel="stylesheet" href="../shared/theme.css" />
+  <link rel="stylesheet" href="overlay.css" />
+</head>
+<body>
+  <!-- The floating pill. State is driven by [data-state], set from overlay:state. -->
+  <div class="pill" id="pill" data-state="hidden" role="status" aria-live="polite">
+
+    <!-- lead: one glyph shown per state -->
+    <div class="lead" aria-hidden="true">
+      <span class="dot"></span>
+      <span class="spinner"></span>
+      <svg class="ic-check" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.4"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 12.5l4.5 4.5L19.5 6.5" />
+      </svg>
+      <svg class="ic-alert" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 8.5v5" />
+        <circle cx="12" cy="16.7" r="0.6" fill="currentColor" stroke="none" />
+        <path d="M12 3.8L2.3 20.2h19.4L12 3.8z" />
+      </svg>
+    </div>
+
+    <!-- body: waveform, live partial text, OR message (one visible per state) -->
+    <div class="body">
+      <div class="wave" id="wave" aria-hidden="true"></div>
+      <!-- live interim transcript while listening (display-only, textContent set
+           by overlay.js — never innerHTML: transcripts are untrusted input) -->
+      <div class="partial" id="partial" aria-hidden="true"></div>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <!-- trailing: elapsed timer while listening -->
+    <div class="timer" id="timer" aria-hidden="true">0:00</div>
+  </div>
+
+  <!-- vad.js: pure energy-based auto-stop detector (loads before audio.js) -->
+  <script src="vad.js"></script>
+  <!-- audio.js owns getUserMedia + worklet registration + chime + saysomething:level -->
+  <script src="audio.js"></script>
+  <!-- overlay.js drives the pill; must load last -->
+  <script src="overlay.js"></script>
+</body>
+</html>

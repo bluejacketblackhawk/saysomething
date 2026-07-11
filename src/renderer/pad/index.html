@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Local-first: block all external access. No network, no remote resources. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';" />
+  <title>SaySomething drop pad</title>
+  <link rel="stylesheet" href="../shared/theme.css" />
+  <link rel="stylesheet" href="pad.css" />
+</head>
+<body>
+  <div class="pad" id="pad">
+    <!-- drag strip: moves the window (app-region drag) -->
+    <div class="grip" id="grip" title="Drag to move">
+      <span class="dots" aria-hidden="true"></span>
+      <span class="label">SaySomething</span>
+      <button class="x" id="dismiss" title="Dismiss (Esc)" aria-label="Dismiss">✕</button>
+    </div>
+
+    <!-- the transcribed text (textContent only — untrusted input) -->
+    <div class="text" id="text"></div>
+
+    <!-- actions -->
+    <div class="row">
+      <button class="btn primary" id="drop">Drop here</button>
+      <button class="btn" id="copy">Copy</button>
+    </div>
+    <div class="hint" id="hint">Copied. Paste anywhere, or hit “Drop here” then click a spot.</div>
+  </div>
+
+  <script src="pad.js"></script>
+</body>
+</html>

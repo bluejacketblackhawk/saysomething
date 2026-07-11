@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+
+# Setup-generated artifacts (scripts/setup.js)
+#   bin/whisper  — unpacked whisper-server/whisper-cli binaries + DLLs
+#   bin/helper   — compiled SaySomethingHelper.exe (source native/SaySomethingHelper.cs IS committed)
+bin
+
+# Cached third-party downloads (whisper-bin-x64 release zip)
+third_party/*.zip
+
+# Logs (runtime logs live in %APPDATA%/SaySomething/logs; this covers any stray local ones)
+logs
+*.log
+
+# Packaging output + staged bundle resources (electron-builder)
+dist/
+build-resources/
+
+# Dev tooling (Claude Code local config — must not ship in the public repo)
+.claude/
+
+# OS / editor junk
+Thumbs.db
+Desktop.ini
+.DS_Store

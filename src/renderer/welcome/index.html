@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+  <title>Welcome to Say Something</title>
+  <link rel="stylesheet" href="../shared/theme.css" />
+  <link rel="stylesheet" href="welcome.css" />
+</head>
+<body>
+  <main class="card">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="52" height="52">
+        <defs>
+          <linearGradient id="wisp" x1="0" y1="0.5" x2="1" y2="0.5">
+            <stop offset="0" stop-color="#67E8F9"/>
+            <stop offset="0.5" stop-color="#5EEAD4"/>
+            <stop offset="1" stop-color="#A78BFA"/>
+          </linearGradient>
+        </defs>
+        <!-- aurora voice waveform (not a letterform) -->
+        <g fill="url(#wisp)">
+          <rect x="5"  y="21" width="7" height="22" rx="3.5"/>
+          <rect x="17" y="11" width="7" height="42" rx="3.5"/>
+          <rect x="29" y="17" width="7" height="30" rx="3.5"/>
+          <rect x="41" y="8"  width="7" height="48" rx="3.5"/>
+          <rect x="53" y="22" width="7" height="20" rx="3.5"/>
+        </g>
+      </svg>
+    </div>
+
+    <h1>Say Something</h1>
+    <p class="tag">Talk instead of type. Nothing ever leaves your machine.</p>
+
+    <ul class="steps">
+      <li><kbd>Hold Right&nbsp;Ctrl</kbd><span>Talk, let go, your words land wherever your cursor is.</span></li>
+      <li><kbd>Hold Right&nbsp;Alt</kbd><span>The drop pad catches your words in a movable puck. Drop it wherever you want.</span></li>
+      <li><span class="dot"></span><span>100% on-device. No account, no cloud, no telemetry. Ever.</span></li>
+    </ul>
+
+    <p class="ready" id="ready">The speech engine is warming up in the background…</p>
+
+    <button class="go" id="go">Got it, let’s go</button>
+  </main>
+  <script src="welcome.js"></script>
+</body>
+</html>

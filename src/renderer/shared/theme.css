@@ -1,0 +1,93 @@
+/* =============================================================================
+ * SaySomething — shared design tokens ("aurora wisp")
+ * -----------------------------------------------------------------------------
+ * Single source of truth for colour, type, radius, shadow and motion, consumed
+ * by BOTH renderers (overlay + settings). Dark, ethereal, premium. Aurora accent
+ * spectrum is cyan -> teal -> violet. Absolutely NO orange / terracotta anywhere.
+ * See docs/SPEC.md "Visual identity — aurora wisp".
+ * ========================================================================== */
+
+:root {
+  /* ---- Typeface -------------------------------------------------------- */
+  --font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", ui-monospace, monospace;
+
+  /* ---- Ink surfaces ---------------------------------------------------- */
+  --ink-900: #0B0E14;   /* app / deepest background            */
+  --ink-850: #0D1117;   /* recessed                             */
+  --ink-800: #10141D;   /* panels, the pill fill                */
+  --ink-750: #131824;   /* raised panel                         */
+  --ink-700: #161B26;   /* controls, hover                      */
+  --ink-650: #1A2130;   /* pressed / active control             */
+
+  /* ---- Hairlines ------------------------------------------------------- */
+  --border:      #1E2430;
+  --border-soft: rgba(230, 234, 242, 0.08);
+  --border-strong: #2A3242;
+
+  /* ---- Text ------------------------------------------------------------ */
+  --text:        #E6EAF2;   /* primary        */
+  --text-muted:  #8B93A7;   /* secondary      */
+  --text-faint:  #5A6274;   /* tertiary/hint  */
+  --text-invert: #0B0E14;   /* on-accent      */
+
+  /* ---- Aurora accent spectrum ----------------------------------------- */
+  --cyan:   #67E8F9;
+  --teal:   #5EEAD4;
+  --violet: #A78BFA;
+
+  /* RGB triplets (for rgba() glows) */
+  --cyan-rgb:   103, 232, 249;
+  --teal-rgb:   94, 234, 212;
+  --violet-rgb: 167, 139, 250;
+
+  /* Gradients */
+  --aurora:      linear-gradient(90deg, var(--cyan) 0%, var(--teal) 50%, var(--violet) 100%);
+  --aurora-diag: linear-gradient(120deg, var(--cyan) 0%, var(--teal) 48%, var(--violet) 100%);
+  --aurora-soft: linear-gradient(120deg,
+                   rgba(var(--cyan-rgb), 0.9) 0%,
+                   rgba(var(--teal-rgb), 0.85) 50%,
+                   rgba(var(--violet-rgb), 0.9) 100%);
+
+  /* Primary single accent + its glow */
+  --accent:     var(--cyan);
+  --accent-rgb: var(--cyan-rgb);
+
+  /* ---- Semantic (deliberately cool — no orange) ------------------------ */
+  --success:     #5EEAD4;              /* teal            */
+  --success-rgb: 94, 234, 212;
+  --danger:      #F87171;              /* rose red        */
+  --danger-rgb:  248, 113, 113;
+  --muted:       var(--text-muted);
+
+  /* ---- Radii ----------------------------------------------------------- */
+  --r-sm:   8px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-pill: 999px;
+
+  /* ---- Shadows & glows ------------------------------------------------- */
+  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md:  0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg:  0 16px 48px rgba(0, 0, 0, 0.55);
+  --shadow-pill: 0 10px 34px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+
+  --glow-cyan:   0 0 28px rgba(var(--cyan-rgb), 0.34);
+  --glow-teal:   0 0 26px rgba(var(--teal-rgb), 0.30);
+  --glow-violet: 0 0 26px rgba(var(--violet-rgb), 0.30);
+  --glow-danger: 0 0 24px rgba(var(--danger-rgb), 0.30);
+
+  /* ---- Motion ---------------------------------------------------------- */
+  --t-fast: 150ms;
+  --t-med:  200ms;
+  --t-slow: 250ms;
+  --ease:      cubic-bezier(0.22, 0.61, 0.36, 1);   /* ease-out         */
+  --ease-soft: cubic-bezier(0.4, 0.0, 0.2, 1);       /* standard         */
+
+  /* ---- Layout ---------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+}
