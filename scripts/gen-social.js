@@ -39,7 +39,7 @@ function runUnderElectron(el) {
   }
 
   const wave =
-    '<svg width="168" height="132" viewBox="0 0 256 256" style="filter:drop-shadow(0 0 26px rgba(103,232,249,.35))">' +
+    '<svg width="150" height="118" viewBox="0 0 256 256" style="margin-bottom:30px;filter:drop-shadow(0 0 26px rgba(103,232,249,.35))">' +
     '<defs><linearGradient id="a" x1="28" y1="128" x2="228" y2="128" gradientUnits="userSpaceOnUse">' +
     '<stop offset="0" stop-color="#67E8F9"/><stop offset=".5" stop-color="#5EEAD4"/><stop offset="1" stop-color="#A78BFA"/>' +
     '</linearGradient></defs><g fill="url(#a)">' +
@@ -54,18 +54,20 @@ function runUnderElectron(el) {
     'html,body{margin:0;width:' + W + 'px;height:' + H + 'px;overflow:hidden;' +
     'font-family:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;}' +
     '.wrap{box-sizing:border-box;width:' + W + 'px;height:' + H + 'px;padding:70px;' +
-    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;' +
+    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;text-align:center;' +
     'background:radial-gradient(120% 95% at 50% -12%, rgba(103,232,249,.16), transparent 55%),' +
     'radial-gradient(85% 80% at 82% 8%, rgba(167,139,250,.13), transparent 55%),#0B0E14;}' +
-    'h1{margin:0;font-size:108px;line-height:1.35;padding:0 10px 12px;font-weight:680;letter-spacing:.5px;' +
+    '.kicker{margin:0 0 2px;font-size:35px;font-weight:500;color:#AAB3C2;}' +
+    'h1{margin:0;font-size:108px;line-height:1.28;padding:0 10px 14px;font-weight:680;letter-spacing:.5px;' +
     'background:linear-gradient(92deg,#67E8F9,#5EEAD4 48%,#A78BFA);' +
     '-webkit-background-clip:text;background-clip:text;color:transparent;}' +
-    'p{margin:0;font-size:31px;font-weight:500;color:#8B93A7;}' +
+    '.desc{margin:14px 0 0;font-size:31px;font-weight:500;color:#8B93A7;}' +
     '.free{color:#5EEAD4;font-weight:600;}' +
     '</style></head><body><div class="wrap">' +
     wave +
+    '<p class="kicker">You’re sitting there quiet all day.</p>' +
     '<h1>Say Something</h1>' +
-    '<p><span class="free">Free, local</span> voice dictation for Windows. No cloud, no account.</p>' +
+    '<p class="desc"><span class="free">Free, local</span> voice dictation for Windows. No cloud, no account.</p>' +
     '</div></body></html>';
 
   app.whenReady().then(function () {
