@@ -40,7 +40,7 @@
   if (copyBtn) {
     copyBtn.addEventListener('click', function () {
       send('pad:copy', { text: textEl ? textEl.textContent : '' });
-      if (hint) { hint.textContent = 'Copied to clipboard.'; hint.classList.remove('armed'); }
+      if (hint) { hint.textContent = 'Copied. Paste anywhere.'; hint.classList.remove('armed'); }
     });
   }
   if (dismissBtn) {

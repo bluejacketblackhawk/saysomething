@@ -2,6 +2,8 @@
 
 # Say Something
 
+*You're sitting there quiet all day. Say Something.*
+
 ### Hold a key, talk, your words show up. Anywhere in Windows.
 
 **Say Something** lets you talk instead of type. Hold **Right Ctrl** in any app, say your thing, let go, and the cleaned-up text drops in at your cursor about a second later. It runs 100% on your machine. Free, open-source, no account, no cloud, no subscription, no telemetry. None of that.

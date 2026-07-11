@@ -236,7 +236,7 @@ function boot() {
     .catch(function (err) {
       logError('helper.start failed', err);
       if (!setupNotice) {
-        notify('SaySomething — keyboard helper unavailable',
+        notify('Say Something: hotkey unavailable',
           'The dictation hotkey may not work. Try running:  node scripts/setup.js');
       }
     });
@@ -246,12 +246,12 @@ function boot() {
   if (helper && helper.on) {
     helper.on('unavailable', function (info) {
       logError('helper unavailable after ' + (info && info.restarts) + ' restarts — hotkey is dead');
-      notify('SaySomething: dictation unavailable', 'The keyboard helper keeps crashing. Restart SaySomething to try again.');
+      notify('Say Something: dictation stopped', 'The hotkey stopped responding. Restart Say Something to get dictation back.');
       try {
         const wc = windows && windows.getOverlayWC && windows.getOverlayWC();
         if (wc && ipc) {
           windows.showOverlay && windows.showOverlay();
-          wc.send(ipc.OVERLAY_STATE, { state: 'error', detail: { message: 'Dictation unavailable — restart SaySomething' } });
+          wc.send(ipc.OVERLAY_STATE, { state: 'error', detail: { message: 'Dictation stopped. Restart Say Something to fix it.' } });
         }
       } catch (e) { /* ignore */ }
     });
@@ -351,17 +351,17 @@ function guideRunSetup() {
   if (setupNotice) return;
   setupNotice = true;
   const msg =
-    'SaySomething needs a one-time setup before it can transcribe.\n\n' +
-    'Open a terminal in the SaySomething folder and run:\n\n' +
+    'Say Something needs a one-time setup before it can transcribe.\n\n' +
+    'Open a terminal in the Say Something folder and run:\n\n' +
     '    node scripts/setup.js\n\n' +
     'That downloads the local speech engine and the default model (a few minutes,\n' +
-    'just once). Then start SaySomething again with:  npm start\n\n' +
-    'SaySomething will stay in the tray meanwhile — nothing runs until setup completes.';
+    'just once). Then start Say Something again with:  npm start\n\n' +
+    'Say Something sits in the tray meanwhile. Nothing runs until setup finishes.';
   try {
-    if (dialog && dialog.showErrorBox) dialog.showErrorBox('SaySomething — setup required', msg);
+    if (dialog && dialog.showErrorBox) dialog.showErrorBox('Say Something needs a quick setup', msg);
   } catch (e) { logError('setup dialog failed', e); }
-  notify('SaySomething — setup required',
-    'Run  node scripts/setup.js  in the SaySomething folder, then restart SaySomething.');
+  notify('Say Something needs a quick setup',
+    'Run  node scripts/setup.js  in the Say Something folder, then restart Say Something.');
 }
 
 /** Binaries are present but no usable model: land the user on the model manager. */
@@ -370,9 +370,9 @@ function guideDownloadModel(haveOtherModel) {
   setupNotice = true;
   safeCall(function () { return windows && windows.createSettings && windows.createSettings(); }, 'createSettings');
   const body = haveOtherModel
-    ? 'Your selected model isn’t downloaded yet. Open Settings › Models to get it or pick another.'
-    : 'No speech model yet. Open Settings › Models to download one, then dictation is ready.';
-  notify('SaySomething — a speech model is needed', body);
+    ? 'Your selected model isn’t downloaded yet. Open Settings, then Models to get it or pick another.'
+    : 'No speech model yet. Open Settings, then Models to download one and you’re good to go.';
+  notify('Say Something needs a voice model', body);
 }
 
 // ---------------------------------------------------------------------------

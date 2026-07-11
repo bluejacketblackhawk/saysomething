@@ -2,7 +2,7 @@
   "name": "saysomething",
   "productName": "Say Something",
   "version": "0.1.0",
-  "description": "Local-first Windows voice dictation — hold a key, speak, release; your words appear in the focused app. Private and on-device, no cloud.",
+  "description": "Windows voice dictation that runs on your machine. Hold a key, talk, let go, and your words land in whatever app you're in. Nothing leaves your computer, no cloud.",
   "license": "MIT",
   "author": "bluejacketblackhawk",
   "repository": {

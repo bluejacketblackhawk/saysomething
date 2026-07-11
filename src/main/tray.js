@@ -181,7 +181,7 @@ function currentSettings() {
 
 function tooltipFor(s) {
   const name = (s && s.hotkey && s.hotkey.name) ? s.hotkey.name : 'Right Ctrl';
-  return 'Say Something — hold ' + name + ' to dictate';
+  return 'Say Something. Hold ' + name + ' to talk.';
 }
 
 function openSettings() {

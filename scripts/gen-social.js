@@ -54,10 +54,10 @@ function runUnderElectron(el) {
     'html,body{margin:0;width:' + W + 'px;height:' + H + 'px;overflow:hidden;' +
     'font-family:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;}' +
     '.wrap{box-sizing:border-box;width:' + W + 'px;height:' + H + 'px;padding:70px;' +
-    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;text-align:center;' +
+    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;' +
     'background:radial-gradient(120% 95% at 50% -12%, rgba(103,232,249,.16), transparent 55%),' +
     'radial-gradient(85% 80% at 82% 8%, rgba(167,139,250,.13), transparent 55%),#0B0E14;}' +
-    'h1{margin:0;font-size:112px;line-height:1;font-weight:680;letter-spacing:.5px;' +
+    'h1{margin:0;font-size:108px;line-height:1.35;padding:0 10px 12px;font-weight:680;letter-spacing:.5px;' +
     'background:linear-gradient(92deg,#67E8F9,#5EEAD4 48%,#A78BFA);' +
     '-webkit-background-clip:text;background-clip:text;color:transparent;}' +
     'p{margin:0;font-size:31px;font-weight:500;color:#8B93A7;}' +
