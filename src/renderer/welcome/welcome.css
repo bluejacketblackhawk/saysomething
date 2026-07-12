@@ -114,7 +114,102 @@ h1 {
   font-weight: 650;
   letter-spacing: 0.2px;
   cursor: pointer;
-  transition: filter var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+  transition: filter var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
 }
 .go:hover { filter: brightness(1.07); }
 .go:active { transform: translateY(1px); }
+
+/* Disabled "Start dictating" (gated until every grant is in place). */
+.go:disabled,
+.go:disabled:hover {
+  opacity: 0.4;
+  filter: none;
+  cursor: not-allowed;
+}
+.go:disabled:active { transform: none; }
+
+/* ---- macOS permissions onboarding ------------------------------------- */
+
+.perms-card .tag { margin-bottom: 18px; }
+
+.perms {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.perm-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--ink-800);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  text-align: left;
+  transition: border-color var(--t-med) var(--ease);
+}
+.perm-row[data-granted="true"] { border-color: rgba(var(--teal-rgb), 0.35); }
+
+/* Status light: dim until granted, then a warm teal glow. Never orange. */
+.light {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink-650);
+  border: 1px solid var(--border-strong);
+  box-shadow: none;
+  transition: background var(--t-med) var(--ease),
+              border-color var(--t-med) var(--ease),
+              box-shadow var(--t-med) var(--ease);
+}
+.perm-row[data-granted="true"] .light {
+  background: radial-gradient(circle at 35% 30%, var(--cyan), var(--teal) 70%);
+  border-color: transparent;
+  box-shadow: 0 0 10px rgba(var(--teal-rgb), 0.6);
+}
+
+.perm-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.perm-name { font-size: 13.5px; font-weight: 640; color: var(--text); }
+.perm-why { font-size: 12px; line-height: 1.35; color: var(--text-muted); }
+
+.grant {
+  flex: 0 0 auto;
+  padding: 7px 15px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--ink-700);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), filter var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
+}
+.grant:hover { background: var(--ink-650); }
+.grant:active { transform: translateY(1px); }
+.grant:disabled {
+  opacity: 0.5;
+  cursor: default;
+  background: transparent;
+  border-color: rgba(var(--teal-rgb), 0.35);
+  color: var(--teal);
+}
+.grant:disabled:hover { background: transparent; }
+
+.perms-hint {
+  margin: 0 0 18px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-faint);
+  text-align: left;
+}

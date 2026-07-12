@@ -2,7 +2,7 @@
   "name": "saysomething",
   "productName": "Say Something",
   "version": "0.2.0",
-  "description": "Windows voice dictation that runs on your machine. Hold a key, talk, let go, and your words land in whatever app you're in. Nothing leaves your computer, no cloud.",
+  "description": "Voice dictation for Windows and macOS that runs on your machine. Hold a key, talk, let go, and your words land in whatever app you're in. Nothing leaves your computer, no cloud.",
   "license": "MIT",
   "author": "bluejacketblackhawk",
   "repository": {
@@ -33,7 +33,10 @@
     "prep": "node scripts/stage-bundle.js",
     "dist:dir": "npm run prep && electron-builder --dir",
     "dist": "npm run prep && electron-builder",
-    "test": "node test/formatter-test.js && node test/rewrite-test.js && node test/wav-test.js && node test/vad-test.js && node test/streaming-test.js && node test/hotkey-match-test.js"
+    "test": "node test/formatter-test.js && node test/rewrite-test.js && node test/wav-test.js && node test/vad-test.js && node test/streaming-test.js && node test/hotkey-match-test.js",
+    "test:electron": "electron test/overlay-css-check.js && electron test/settings-models-check.js && electron test/welcome-perms-check.js",
+    "test:e2e": "test/e2e-transcribe.sh",
+    "test:e2e:partial": "test/partial-transcribe.sh"
   },
   "build": {
     "appId": "app.saysomething.dictation",
@@ -58,6 +61,7 @@
         "to": "models"
       }
     ],
+    "afterPack": "scripts/after-pack.js",
     "win": {
       "target": "nsis",
       "icon": "assets/SaySomething.ico",
@@ -68,6 +72,25 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "Say Something"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ],
+      "icon": "assets/SaySomething.icns",
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "entitlements": "build-resources/entitlements.mac.plist",
+      "entitlementsInherit": "build-resources/entitlements.mac.inherit.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Say Something transcribes your voice on your Mac."
+      },
+      "notarize": true,
+      "artifactName": "SaySomething-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "artifactName": "SaySomething-${version}-${arch}.${ext}"
     }
   },
   "devDependencies": {

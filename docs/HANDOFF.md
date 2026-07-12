@@ -82,7 +82,7 @@ Both artifacts are **unsigned**, so Windows SmartScreen says "unknown publisher"
 
 ## Roadmap / open items
 
-- **macOS port** — someone asked for it. Full guide in `docs/MAC-PORT.md`. The whole JS layer + renderers + whisper protocol are cross-platform; the work is replacing the C# Windows helper with a macOS equivalent and the packaging.
+- **macOS port** — DONE (Apple Silicon + Intel). The Swift helper (`native/SaySomethingHelper.swift`) speaks the same stdio protocol as the C# one (Windows-VK translation at the boundary, so settings stay portable), whisper.cpp builds locally with Metal (`scripts/build-whisper-mac.sh`), first-run TCC onboarding lives in the welcome window, and electron-builder makes a dmg+zip per arch. The two native binaries (the Swift helper and whisper-server) are universal (arm64 + x86_64 via lipo), so the one bundled `bin/` tree runs on both; the Intel whisper slice is CPU/Accelerate (no Metal). Guide: `docs/MAC-PORT.md`, pinned decisions: `docs/MAC-PORT-ADDENDUM.md`. Left for a human: a live hands-on dictation pass after granting TCC, and Developer ID signing/notarization (steps in MAC-PORT.md §8).
 - **Code signing** — Windows (SmartScreen) and macOS (Gatekeeper/notarization) both show "unknown/unidentified developer" while unsigned. Buying certs removes the scare screens.
 - **Social preview / launch** — social banner is set; Ko-fi tip link is in the README.
 

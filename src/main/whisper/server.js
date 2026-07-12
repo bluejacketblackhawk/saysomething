@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * whisper-server.exe lifecycle manager (singleton EventEmitter).
+ * whisper-server lifecycle manager (singleton EventEmitter).
  *
  * Spawns the local whisper HTTP server bound to 127.0.0.1, probes upward for a
  * free port if the requested one is busy, polls until the port accepts TCP
@@ -9,7 +9,9 @@
  * that doubles as a readiness signal), and auto-restarts with exponential
  * backoff if the process crashes after having been up.
  *
- * Verified flags (whisper-server.exe --help, v1.9.1):
+ * The binary path (whisper-server.exe on Windows, whisper-server on darwin) comes
+ * from binaries.serverExe() — the CLI flags are identical cross-platform (same
+ * whisper.cpp v1.9.1 wire contract). Verified flags (whisper-server --help):
  *   -m <path>  --host 127.0.0.1  --port <n>  -t <threads>
  * A bad/missing model makes the process exit immediately (code 3) BEFORE it
  * opens the port — that is treated as a launch failure (reject), not a crash to
@@ -20,12 +22,12 @@
 
 const { EventEmitter } = require('events');
 const { spawn } = require('child_process');
-const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const net = require('net');
-const { BIN_WHISPER, DEFAULT_PORT } = require('../config');
+const { DEFAULT_PORT } = require('../config');
 const models = require('./models');
+const binaries = require('./binaries');
 const log = require('../log');
 
 const READY_TIMEOUT_MS = 60000;   // model load can be slow the first time
@@ -122,9 +124,9 @@ class WhisperServer extends EventEmitter {
       log.error('whisper start: ' + e.message);
       throw e;
     }
-    const exe = path.join(BIN_WHISPER, 'whisper-server.exe');
+    const exe = binaries.serverExe();
     if (!fs.existsSync(exe)) {
-      const e = new Error('whisper-server.exe missing at ' + exe + ' (run binaries.ensure()/setup)');
+      const e = new Error('whisper-server missing at ' + exe + ' (run binaries.ensure()/setup)');
       log.error('whisper start: ' + e.message);
       throw e;
     }

@@ -3,15 +3,16 @@
 /**
  * System tray (agent E).
  *
- * Shows the Say Something mark in the notification area with a menu:
- *   Paused (checkbox) / Settings... / Start with Windows (checkbox) / Quit
- * and a tooltip that reflects the live hotkey name. Double-clicking the icon
- * opens Settings.
+ * Shows the Say Something mark in the notification area (menu bar on macOS) with
+ * a menu: Paused (checkbox) / Settings... / Start with Windows (checkbox) / Quit
+ * — the login-item label reads "Start at login" on macOS. A tooltip reflects the
+ * live hotkey name. Double-clicking the icon opens Settings.
  *
  * The icon is a nativeImage built from a PNG buffer. If assets/SaySomething.png exists
  * (produced by scripts/gen-icon.js) it is used; otherwise a small aurora
  * cyan->violet "wisp" orb is drawn programmatically and PNG-encoded with Node's
- * built-in zlib (zero runtime deps).
+ * built-in zlib (zero runtime deps). The programmatic RGBA image renders fine as a
+ * menu-bar icon on macOS (no template-image / setPressedImage bits to guard).
  */
 
 const path = require('path');
@@ -20,6 +21,8 @@ const zlib = require('zlib');
 const { app, Tray, Menu, nativeImage } = require('electron');
 const settings = require('./stores/settings');
 const windows = require('./windows');
+
+const IS_MAC = process.platform === 'darwin';
 
 let log;
 try {
@@ -180,7 +183,10 @@ function currentSettings() {
 }
 
 function tooltipFor(s) {
-  const name = (s && s.hotkey && s.hotkey.name) ? s.hotkey.name : 'Right Ctrl';
+  // The live hotkey name comes from settings (darwin default is "Right Cmd"); the
+  // fallback only matters if the name were somehow blank.
+  const fallback = IS_MAC ? 'Right Cmd' : 'Right Ctrl';
+  const name = (s && s.hotkey && s.hotkey.name) ? s.hotkey.name : fallback;
   return 'Say Something. Hold ' + name + ' to talk.';
 }
 
@@ -190,11 +196,15 @@ function openSettings() {
 
 function applyLoginItem(enabled) {
   try {
-    app.setLoginItemSettings({
-      openAtLogin: !!enabled,
-      path: process.execPath,
-      args: [app.getAppPath()],
-    });
+    // `path`/`args` are Windows/Linux-only options; on macOS they're ignored and
+    // the login item always points at the app bundle, so omit them there (passing
+    // process.execPath — an inner Electron helper on mac — would be meaningless).
+    const opts = { openAtLogin: !!enabled };
+    if (!IS_MAC) {
+      opts.path = process.execPath;
+      opts.args = [app.getAppPath()];
+    }
+    app.setLoginItemSettings(opts);
   } catch (e) {
     log.warn('tray: setLoginItemSettings failed', e);
   }
@@ -216,7 +226,7 @@ function buildMenu(s) {
       click: openSettings,
     },
     {
-      label: 'Start with Windows',
+      label: IS_MAC ? 'Start at login' : 'Start with Windows',
       type: 'checkbox',
       checked: !!s.launchAtLogin,
       click: function (item) {

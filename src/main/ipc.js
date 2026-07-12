@@ -50,6 +50,14 @@ const CH = {
   MODELS_PROGRESS: 'models:progress', // { name, pct, bytes, total }
   WHISPER_STATUS: 'whisper:status',   // { running, model, port }
   SETTINGS_CHANGED: 'settings:changed', // { settings }
+
+  // ---- Welcome / permissions onboarding renderer (macOS TCC) ----
+  // invoke (renderer → main → reply):
+  PERMS_GET: 'perms:get',             // -> { listen, ax, mic, platform:'darwin'|'win32' }
+  PERMS_REQUEST: 'perms:request',     // (kind: 'listen'|'ax'|'mic') trigger the OS prompt (+ open the pane for listen/ax) -> current snapshot
+  PERMS_OPEN_PANE: 'perms:openPane',  // (kind) open the System Settings pane
+  // event (main → renderer):
+  PERMS_CHANGED: 'perms:changed',     // { listen, ax, mic, platform }
 };
 
 // Per-renderer whitelists (what each preload is allowed to bridge).
@@ -77,6 +85,12 @@ const SETTINGS = {
   ],
 };
 
+const WELCOME = {
+  send: [],
+  on: [CH.PERMS_CHANGED],
+  invoke: [CH.PERMS_GET, CH.PERMS_REQUEST, CH.PERMS_OPEN_PANE],
+};
+
 // Export the constants both flat (ipc.OVERLAY_STATE) and grouped (ipc.CH.OVERLAY_STATE),
 // plus the per-renderer whitelists.
-module.exports = Object.assign({}, CH, { CH: CH, OVERLAY: OVERLAY, PAD: PAD, SETTINGS: SETTINGS });
+module.exports = Object.assign({}, CH, { CH: CH, OVERLAY: OVERLAY, PAD: PAD, SETTINGS: SETTINGS, WELCOME: WELCOME });

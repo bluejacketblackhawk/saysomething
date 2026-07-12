@@ -4,15 +4,15 @@
 
 *You're sitting there quiet all day. Say Something.*
 
-### Hold a key, talk, your words show up. Anywhere in Windows.
+### Hold a key, talk, your words show up. Anywhere in Windows or macOS.
 
-**Say Something** lets you talk instead of type. Hold **Right Ctrl** in any app, say your thing, let go, and the cleaned-up text drops in at your cursor about a second later. It runs 100% on your machine. Free, open-source, no account, no cloud, no subscription, no telemetry. None of that.
+**Say Something** lets you talk instead of type. Hold **Right Ctrl** (Windows) or **Right Cmd** (Mac) in any app, say your thing, let go, and the cleaned-up text drops in at your cursor about a second later. It runs 100% on your machine. Free, open-source, no account, no cloud, no subscription, no telemetry. None of that.
 
 [![CI](https://github.com/bluejacketblackhawk/saysomething/actions/workflows/ci.yml/badge.svg)](https://github.com/bluejacketblackhawk/saysomething/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-5EEAD4.svg)](LICENSE)
 [![100% local](https://img.shields.io/badge/100%25-local-67E8F9.svg)](#privacy)
 [![No cloud](https://img.shields.io/badge/cloud-none-A78BFA.svg)](#privacy)
-[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-8B93A7.svg)](#requirements)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20%7C%20macOS-8B93A7.svg)](#requirements)
 
 <br />
 
@@ -38,11 +38,11 @@
 
 ## The drop pad: catch your words, drag them where you want
 
-Not sure which box has focus? Don't want it typing into the wrong window? Hold **Right Alt** instead of the main key and your words land in a little floating pad, already copied. Then just **grab the pad and drag it onto the field you want**, let go, and the text drops right there. Or hit **Ctrl+V** anywhere, it's copied either way. You catch your words and carry them exactly where they go. Every other dictation tool just fires text at whatever window's focused and hopes. This is the only one I've found that lets you aim. Wispr Flow doesn't.
+Not sure which box has focus? Don't want it typing into the wrong window? Hold **Right Alt** (Windows) or **Right Option** (Mac) instead of the main key and your words land in a little floating pad, already copied. Then just **grab the pad and drag it onto the field you want**, let go, and the text drops right there. Or hit **Ctrl+V** anywhere, it's copied either way. You catch your words and carry them exactly where they go. Every other dictation tool just fires text at whatever window's focused and hopes. This is the only one I've found that lets you aim. Wispr Flow doesn't.
 
 ## What it does
 
-- **Hold to talk.** Hold the key (default **Right Ctrl**, you can rebind it), a glowing pill pops up, talk, let go, text drops in at your cursor.
+- **Hold to talk.** Hold the key (default **Right Ctrl** on Windows, **Right Cmd** on Mac, you can rebind it), a glowing pill pops up, talk, let go, text drops in at your cursor.
 - **Tap to go hands-free.** Quick tap (under 250 ms) and it keeps listening so you don't have to hold anything. Tap again to finish. **Esc** bails, nothing gets inserted.
 - **Auto-stop when you stop.** In hands-free mode it notices when you go quiet and finishes on its own (silence window is adjustable, 1 to 5 seconds). The pill dims as the pause builds so it never feels random. Hold-to-talk never auto-stops.
 - **Live preview.** Words show up in the pill while you're still talking. It's just a preview though. The final accurate pass on release is what actually gets inserted.
@@ -65,13 +65,13 @@ Straight up: Wispr Flow is a polished paid product and it does some things Say S
 | Account | None | Required |
 | Privacy | You can read the source; audio never leaves | Trust their policy |
 | Works offline | Yes | No, needs the cloud |
-| Platforms | Windows 10/11 | Windows and macOS |
+| Platforms | Windows 10/11 and macOS (Apple Silicon and Intel) | Windows and macOS |
 | AI cleanup | Yes, local and free (optional, via Ollama) | Yes, cloud (part of the sub) |
 | Live preview while talking | Yes, in the pill; inserted on release | Yes, streams into the field |
 | Drop pad (catch text, place it with a click) | Yes | No |
 | Custom dictionary | Yes | Yes |
 
-If you want text streaming straight into the field as you talk, or you're on a Mac, Wispr Flow is the more complete thing today. If you want dictation that never phones home and that you fully own, that's this.
+If you want text streaming straight into the field as you talk, Wispr Flow is the more complete thing today. If you want dictation that never phones home and that you fully own, on Windows or Mac, that's this.
 
 ## The optional AI cleanup
 
@@ -84,17 +84,36 @@ You can have it hand each finished dictation to a local model for one last polis
 
 ## Requirements
 
+**Windows**
 - Windows 10/11 (x64)
 - Node.js 24+
 - The C# compiler that already ships with Windows (`csc.exe`). Used once at setup to build the tiny helper. Nothing gets downloaded to build it.
 
+**macOS**
+- macOS 13+ on Apple Silicon or Intel
+- Node.js 24+
+- Xcode Command Line Tools (`xcode-select --install`). Setup uses `swiftc` to build the tiny helper and `cmake` + `clang` to build the speech engine, all on your machine.
+
 ## Setup and run
+
+Windows:
 
 ```powershell
 npm install            # installs Electron (the only devDependency)
 node scripts/setup.js  # unpacks whisper, compiles the helper, grabs the default model
 npm start              # launches, shows up in your system tray
 ```
+
+Mac:
+
+```bash
+npm install                        # installs Electron (the only devDependency)
+bash scripts/build-whisper-mac.sh  # builds whisper.cpp (Metal) from source, once
+node scripts/setup.js              # compiles the helper, grabs the default model
+npm start                          # launches, shows up in your menu bar
+```
+
+First launch on a Mac walks you through the three permissions it needs (Microphone, Input Monitoring, Accessibility). That's just how macOS gates global hotkeys and text insertion; the grants stay on your machine like everything else.
 
 - `npm start` runs the app.
 - `npm run smoke` is a headless self-check (no windows, prints JSON, exits non-zero if something's off).
@@ -114,12 +133,14 @@ npm run dist       # installer   -> dist\SaySomething-Setup-<version>.exe
 
 Heads up: `npm run dist` (the installer) needs **Windows Developer Mode** on (Settings → Privacy & security → For developers → Developer Mode). electron-builder unpacks a signing toolkit that has some macOS symlinks in it, and making symlinks on Windows needs that permission. The portable `dist:dir` build doesn't need it. Builds are unsigned, so first launch you'll get a SmartScreen "unknown publisher" nag (More info → Run anyway) until it's code-signed.
 
+On a Mac the same two commands make a `.dmg` and a `.zip` for both Apple Silicon and Intel (four files, one of each per arch). Local builds are unsigned, so Gatekeeper shows the "unidentified developer" nag (right-click → Open) until they're signed and notarized; the signing steps live in [`docs/MAC-PORT.md`](docs/MAC-PORT.md).
+
 ## How it's built
 
 An Electron shell (main is CommonJS, the windows are plain HTML/CSS/JS, no bundler, no framework) plus two small local native bits:
 
-- **SaySomethingHelper.exe.** A tiny C# helper compiled at setup by Windows' own `csc.exe`. It sets a low-level keyboard hook (watched keys only), does the clipboard-swap paste and unicode typing, and reports the foreground window. Talks JSON over stdio. Source is right here in [`native/SaySomethingHelper.cs`](native/SaySomethingHelper.cs). You can read it. It's never downloaded.
-- **whisper-server.exe.** From whisper.cpp v1.9.1, kept warm on `127.0.0.1:8737`. Transcription is a local `POST` to `/inference`.
+- **The input helper.** One tiny native program per platform, both talking the same JSON-over-stdio protocol. On Windows it's a C# helper compiled at setup by Windows' own `csc.exe` ([`native/SaySomethingHelper.cs`](native/SaySomethingHelper.cs)); on Mac it's a Swift helper built by `swiftc` ([`native/SaySomethingHelper.swift`](native/SaySomethingHelper.swift)). It watches only your hotkey, does the clipboard-swap paste and unicode typing, and reports the frontmost app. You can read every line. It's never downloaded.
+- **whisper-server.** From whisper.cpp v1.9.1, kept warm on `127.0.0.1:8737`. Transcription is a local `POST` to `/inference`. On Mac it's built from source as one universal binary; on Apple Silicon it uses Metal so transcription runs on the GPU, and on Intel it runs on the CPU (Accelerate).
 
 **Zero runtime npm dependencies.** Downloads use Node's built-in `fetch`, unzipping uses Windows' own `tar.exe`.
 
@@ -134,11 +155,13 @@ Privacy here isn't a setting, it's how the thing is built.
 - **Whisper binds `127.0.0.1` only.** With AI rewrite off (the default), there are zero network calls at runtime, period.
 - **The optional rewrite only talks to localhost.** If (and only if) you turn it on, it POSTs to Ollama on `127.0.0.1:11434`. That address is hard-coded. No cloud, ever.
 - **The only time it uses the internet** is grabbing models and binaries at setup (GitHub and Hugging Face), and it tells you on the console.
-- **The helper is compiled on your machine** from source that's checked in. The exe is never downloaded.
+- **The helper is compiled on your machine** from source that's checked in (`csc.exe` on Windows, `swiftc` on Mac). The binary is never downloaded.
 
 ## Troubleshooting and FAQ
 
 **Mic permission denied.** Windows can block mic access per app. Open **Settings → Privacy & security → Microphone** (or paste `ms-settings:privacy-microphone` into Run) and make sure desktop apps can use the mic. Restart the app.
+
+**Mac: hotkey does nothing / nothing pastes.** macOS gates global hotkeys behind **Input Monitoring** and text insertion behind **Accessibility** (System Settings → Privacy & Security). The first-run screen walks you through both, plus the mic. If you granted them and it still sits there, toggle the app off and on in those two panes (macOS caches grants per binary) and restart Say Something.
 
 **Port 8737 is busy.** It binds the whisper server to `127.0.0.1:8737`, and if that's taken it probes up through **8747** and grabs the first free one. Nothing for you to do unless all of them are busy, then free one up and restart.
 

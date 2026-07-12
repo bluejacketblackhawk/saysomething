@@ -4,17 +4,20 @@
  * SaySomething setup — idempotent installer.
  *
  * Steps (each safe to re-run):
- *   [1] Unpack whisper binaries from the third_party cache (or download the zip
- *       from GitHub if the cache is missing) into bin/whisper.
- *   [2] Compile SaySomethingHelper.exe via native/build.cmd -> bin/helper. Skipped
- *       gracefully if build.cmd is not present yet (it is built in parallel).
- *   [3] Download the default model (or --model <name>) to %APPDATA%/SaySomething/models
- *       with a console progress bar. Skipped with --no-model.
+ *   [1] Windows: unpack whisper binaries from the third_party cache (or download
+ *       the zip from GitHub if the cache is missing) into bin/whisper. macOS: there
+ *       is no official server release to download — verify a locally-built
+ *       bin/whisper/whisper-server and point at scripts/build-whisper-mac.sh if absent.
+ *   [2] Compile the native helper (native/build.cmd via cmd.exe on Windows,
+ *       native/build-mac.sh via /bin/bash on macOS) -> bin/helper. Skipped
+ *       gracefully if the build script is not present yet (built in parallel).
+ *   [3] Download the default model (or --model <name>) into the user-data models
+ *       dir with a console progress bar. Cross-platform (plain fetch). Skipped with --no-model.
  *   [4] Self-check: boot whisper-server with a local model (if any) and confirm
  *       it becomes reachable, then print a status matrix.
  *
  * Network: this script is the ONLY part of SaySomething that touches the internet —
- * whisper binaries from GitHub, models from Hugging Face. It says so below.
+ * whisper binaries from GitHub (Windows only), models from Hugging Face. It says so below.
  *
  * Flags: --model <name> | --model=<name> | --no-model | -h/--help
  */
@@ -27,6 +30,7 @@ const config = require('../src/main/config');
 const binaries = require('../src/main/whisper/binaries');
 const models = require('../src/main/whisper/models');
 
+const IS_MAC = process.platform === 'darwin';
 const DEFAULT_MODEL = 'small.en';
 
 function parseArgs(argv) {
@@ -80,6 +84,13 @@ async function step1Binaries(status) {
   try {
     if (binaries.isReady()) {
       console.log('      already present at ' + config.BIN_WHISPER);
+    } else if (IS_MAC) {
+      // No macOS whisper-server release to download — it is built from source
+      // (Metal, arm64). Guide the user to the builder; do not attempt a download.
+      status.binaries = 'FAIL';
+      console.error('      whisper-server not found in ' + config.BIN_WHISPER);
+      console.error('      build it first:  bash ' + config.WHISPER_BUILD_MAC);
+      return;
     } else {
       console.log('      unpacking from ' + path.join(config.THIRD_PARTY, config.WHISPER_ZIP_CACHE));
       console.log('      (if the cache is missing it is downloaded from GitHub)');
@@ -94,28 +105,32 @@ async function step1Binaries(status) {
 }
 
 function step2Helper(status) {
-  console.log('[2/4] Native helper (SaySomethingHelper.exe)');
+  const helperName = path.basename(config.BIN_HELPER);
+  const buildScript = config.HELPER_BUILD;         // native/build.cmd | native/build-mac.sh
+  const buildName = path.basename(buildScript);
+  console.log('[2/4] Native helper (' + helperName + ')');
   try {
     if (fs.existsSync(config.BIN_HELPER)) {
       status.helper = 'ok';
       console.log('      already compiled: ' + config.BIN_HELPER);
       return;
     }
-    const nativeDir = path.dirname(config.HELPER_SRC);
-    const buildCmd = path.join(nativeDir, 'build.cmd');
-    if (!fs.existsSync(buildCmd)) {
+    if (!fs.existsSync(buildScript)) {
       status.helper = 'skip';
-      console.log('      build.cmd not present yet (helper is built in parallel) — skipping.');
+      console.log('      ' + buildName + ' not present yet (helper is built in parallel) — skipping.');
       return;
     }
-    console.log('      compiling via ' + buildCmd);
-    const r = spawnSync('cmd.exe', ['/c', buildCmd], { stdio: 'inherit', windowsHide: true });
+    console.log('      compiling via ' + buildScript);
+    // Windows: cmd.exe /c build.cmd (csc). macOS: /bin/bash build-mac.sh (swiftc).
+    const r = IS_MAC
+      ? spawnSync('/bin/bash', [buildScript], { stdio: 'inherit', cwd: path.dirname(buildScript) })
+      : spawnSync('cmd.exe', ['/c', buildScript], { stdio: 'inherit', windowsHide: true });
     if (r.status === 0 && fs.existsSync(config.BIN_HELPER)) {
       status.helper = 'ok';
       console.log('      compiled: ' + config.BIN_HELPER);
     } else {
       status.helper = 'FAIL';
-      console.error('      build.cmd failed (exit ' + r.status + ')');
+      console.error('      ' + buildName + ' failed (exit ' + r.status + ')');
     }
   } catch (e) {
     status.helper = 'FAIL';

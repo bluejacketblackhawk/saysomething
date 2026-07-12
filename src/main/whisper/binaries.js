@@ -1,19 +1,23 @@
 'use strict';
 
 /**
- * Ensure the whisper.cpp runtime binaries are unpacked into BIN_WHISPER.
+ * Ensure the whisper.cpp runtime binaries are present in BIN_WHISPER.
  *
- * Source of truth is the cached release zip at
+ * Windows: source of truth is the cached release zip at
  * `third_party/whisper-bin-x64-v1.9.1.zip` (downloaded from GitHub only if the
  * cache is missing). Extraction uses Windows' bundled bsdtar
  * (`C:\Windows\System32\tar.exe`) — NOT Git Bash's GNU tar, which cannot read
  * zips. The zip stores everything under a `Release/` prefix, which we flatten
- * with `--strip-components=1`.
+ * with `--strip-components=1`. We keep only what whisper-server/whisper-cli need:
+ * the two exes plus the `ggml*.dll` and `whisper.dll` runtime libraries. SDL2.dll
+ * (audio-capture demos only) and parakeet.dll are intentionally left out —
+ * verified: whisper-server runs without SDL2.dll present.
  *
- * We keep only what whisper-server/whisper-cli need: the two exes plus the
- * `ggml*.dll` and `whisper.dll` runtime libraries. SDL2.dll (audio-capture demos
- * only) and parakeet.dll are intentionally left out — verified: whisper-server
- * runs without SDL2.dll present.
+ * darwin: there is no official macOS server release to download. The binary is a
+ * single statically-linked `whisper-server` (Metal embedded, no dylibs) built
+ * locally from source by `scripts/build-whisper-mac.sh` and staged into
+ * BIN_WHISPER. So `ensure()` downloads nothing — it just verifies that binary
+ * exists and is executable, pointing the user at the build script otherwise.
  */
 
 const fs = require('fs');
@@ -27,9 +31,12 @@ const {
   THIRD_PARTY,
   WHISPER_ZIP_CACHE,
   WHISPER_ZIP_URL,
+  WHISPER_BUILD_MAC,
   TAR,
 } = require('../config');
 const HASHES = require('./hashes');
+
+const IS_MAC = process.platform === 'darwin';
 
 function sha256File(p) {
   return new Promise(function (resolve, reject) {
@@ -41,10 +48,19 @@ function sha256File(p) {
   });
 }
 
-function serverExe() { return path.join(BIN_WHISPER, 'whisper-server.exe'); }
+// Absolute path to the whisper HTTP server binary (no .exe on darwin).
+function serverExe() {
+  return path.join(BIN_WHISPER, IS_MAC ? 'whisper-server' : 'whisper-server.exe');
+}
 
-/** True when the binaries appear to be fully unpacked. */
+/** True when the binaries appear to be fully present. */
 function isReady() {
+  if (IS_MAC) {
+    // Static link means whisper-server is the ONLY file in bin/whisper; require it
+    // to exist AND be executable (a non-executable stage is not usable).
+    try { fs.accessSync(serverExe(), fs.constants.X_OK); return true; }
+    catch (e) { return false; }
+  }
   return fs.existsSync(serverExe())
     && fs.existsSync(path.join(BIN_WHISPER, 'whisper-cli.exe'))
     && fs.existsSync(path.join(BIN_WHISPER, 'whisper.dll'));
@@ -136,6 +152,20 @@ async function downloadFile(url, dest) {
 async function ensure() {
   if (isReady()) return;
 
+  if (IS_MAC) {
+    // No official macOS whisper-server release exists to download, and the build
+    // is a from-source Metal compile — out of scope for a runtime ensure(). Verify
+    // the locally-built binary is staged + executable, else point at the builder.
+    const exe = serverExe();
+    try {
+      fs.accessSync(exe, fs.constants.X_OK);
+    } catch (e) {
+      throw new Error('whisper-server missing or not executable at ' + exe +
+        ' — build it with ' + WHISPER_BUILD_MAC);
+    }
+    return;
+  }
+
   await fsp.mkdir(BIN_WHISPER, { recursive: true });
 
   const zipPath = path.join(THIRD_PARTY, WHISPER_ZIP_CACHE);
@@ -166,4 +196,5 @@ async function ensure() {
 module.exports = {
   ensure: ensure,
   isReady: isReady,
+  serverExe: serverExe,
 };

@@ -1,10 +1,11 @@
 'use strict';
 
 /**
- * SaySomethingHelper.exe supervisor (agent A).
+ * SaySomethingHelper supervisor (agent A).
  *
- * Compiles the C# helper via native/build.cmd when the exe is missing, spawns
- * it, speaks the JSON-lines protocol from docs/CONTRACTS.md over stdio, and
+ * Compiles the native helper when the binary is missing (native/build.cmd via
+ * cmd.exe on Windows, native/build-mac.sh via /bin/bash on darwin), spawns it,
+ * speaks the JSON-lines protocol from docs/CONTRACTS.md over stdio, and
  * auto-restarts it with exponential backoff on crash. Exposes a singleton
  * EventEmitter.
  *
@@ -13,6 +14,9 @@
  *   'key'         {vk, down, held} — a watched VK went down/up (held: physical snapshot of watched keys)
  *   'captured'    {vk, name, mods} — rebind capture result (mods: held modifier VKs)
  *   'foreground'  {exe, title}    — mirror of a foreground() reply
+ *   'perms'       {listen, ax}    — (darwin only) TCC grant status for Input
+ *                                   Monitoring / Accessibility. The Windows helper
+ *                                   never emits this; nothing waits on it.
  *   'log'         msg             — helper-internal warning (never keystrokes)
  *   'crash'       {code, signal}  — helper process exited unexpectedly
  *   'unavailable' {restarts}      — gave up after MAX_RAPID_RESTARTS; hotkey dead
@@ -28,6 +32,8 @@
  *   copy(text)             -> Promise<{ok, err}>   set clipboard, no paste
  *   placeAt(text, x, y, restoreMs) -> Promise<{ok, err}>  click at point + paste
  *   foreground()           -> Promise<{exe, title}>
+ *   perms()                                (darwin) ask for a fresh 'perms' event
+ *   permsRequest(kind)                     (darwin) trigger the OS TCC prompt
  *   ping()                 -> Promise<boolean>
  */
 
@@ -36,10 +42,10 @@ const { spawn, execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const { BIN_HELPER, HELPER_SRC } = require('./config');
+const { BIN_HELPER, HELPER_BUILD } = require('./config');
 const log = require('./log');
 
-const BUILD_CMD = path.join(path.dirname(HELPER_SRC), 'build.cmd');
+const IS_MAC = process.platform === 'darwin';
 
 const READY_TIMEOUT_MS = 15000;
 const PING_TIMEOUT_MS = 2000;
@@ -108,13 +114,18 @@ class Helper extends EventEmitter {
   _ensureCompiled() {
     return new Promise(function (resolve, reject) {
       if (fs.existsSync(BIN_HELPER)) { resolve(); return; }
-      if (!fs.existsSync(BUILD_CMD)) {
-        reject(new Error('helper build.cmd missing at ' + BUILD_CMD));
+      // Compile-on-missing only helps a dev checkout; a packaged app always ships
+      // the helper prebuilt, so a missing binary + missing build script is fatal.
+      if (!fs.existsSync(HELPER_BUILD)) {
+        reject(new Error('helper missing at ' + BIN_HELPER + ' and no build script at ' + HELPER_BUILD +
+          (IS_MAC ? ' — a packaged app ships it prebuilt; in a dev checkout add native/build-mac.sh' : '')));
         return;
       }
-      log.info('helper: SaySomethingHelper.exe missing — compiling via build.cmd');
-      const cmd = process.env.ComSpec || 'cmd.exe';
-      execFile(cmd, ['/c', BUILD_CMD], { windowsHide: true, cwd: path.dirname(BUILD_CMD) },
+      // Windows: cmd.exe /c build.cmd (csc). darwin: /bin/bash build-mac.sh (swiftc).
+      const runner = IS_MAC ? '/bin/bash' : (process.env.ComSpec || 'cmd.exe');
+      const argv = IS_MAC ? [HELPER_BUILD] : ['/c', HELPER_BUILD];
+      log.info('helper: ' + path.basename(BIN_HELPER) + ' missing — compiling via ' + path.basename(HELPER_BUILD));
+      execFile(runner, argv, { windowsHide: true, cwd: path.dirname(HELPER_BUILD) },
         function (err, stdout, stderr) {
           if (err) {
             const detail = (stderr && String(stderr).trim()) || (stdout && String(stdout).trim()) || err.message;
@@ -122,10 +133,10 @@ class Helper extends EventEmitter {
             return;
           }
           if (!fs.existsSync(BIN_HELPER)) {
-            reject(new Error('helper compile produced no exe at ' + BIN_HELPER));
+            reject(new Error('helper compile produced no binary at ' + BIN_HELPER));
             return;
           }
-          log.info('helper: compiled SaySomethingHelper.exe');
+          log.info('helper: compiled ' + path.basename(BIN_HELPER));
           resolve();
         });
     });
@@ -302,6 +313,13 @@ class Helper extends EventEmitter {
         this.emit('foreground', info);
         break;
       }
+      case 'perms':
+        // (darwin only) TCC grant status for Input Monitoring / Accessibility,
+        // pushed after 'ready', whenever it changes, and in reply to perms(). The
+        // reply arrives as an event (not a queued request), so just re-emit it.
+        // Additive: the Windows helper never emits 'perms'.
+        this.emit('perms', { listen: !!obj.listen, ax: !!obj.ax });
+        break;
       case 'log':
         if (obj.msg != null) {
           log.warn('helper: ' + obj.msg);
@@ -409,6 +427,24 @@ class Helper extends EventEmitter {
   /** @returns {Promise<{exe:string,title:string}>} */
   foreground() {
     return this._request(this._fgQ, { cmd: 'foreground' }, FOREGROUND_TIMEOUT_MS);
+  }
+
+  /**
+   * (darwin) Ask the helper to (re)report TCC grant status. Fire-and-forget: the
+   * answer arrives as a 'perms' event, not a reply, so there is nothing to await.
+   * No-op on Windows (the helper ignores the command). @returns {boolean} sent
+   */
+  perms() {
+    return this._send({ cmd: 'perms' });
+  }
+
+  /**
+   * (darwin) Trigger the OS permission prompt for a grant. Fire-and-forget; the
+   * updated status arrives later as a 'perms' event. No-op on Windows.
+   * @param {'listen'|'ax'} kind @returns {boolean} sent
+   */
+  permsRequest(kind) {
+    return this._send({ cmd: 'perms-request', kind: (kind === 'ax' ? 'ax' : 'listen') });
   }
 
   /** @returns {Promise<boolean>} true if the helper answered 'pong' */

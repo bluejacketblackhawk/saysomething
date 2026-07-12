@@ -294,11 +294,12 @@
 
   function renderHotkey() {
     if (!settings) return;
+    // Fallbacks only apply if a stored name is blank; keep them platform-correct.
     var name = $('hotkey-name');
-    if (name) name.textContent = settings.hotkey.name || 'Right Ctrl';
+    if (name) name.textContent = settings.hotkey.name || (IS_MAC ? 'Right Cmd' : 'Right Ctrl');
 
     var padName = $('padhotkey-name');
-    if (padName) padName.textContent = (settings.padHotkey && settings.padHotkey.name) || 'Right Alt';
+    if (padName) padName.textContent = (settings.padHotkey && settings.padHotkey.name) || (IS_MAC ? 'Right Option' : 'Right Alt');
     setChecked('pad-enabled', settings.pad && settings.pad.enabled);
 
     var a = settings.autoStop || {};
@@ -313,9 +314,14 @@
   // Combo hotkeys (issue #1): the capture result carries the trigger vk/name plus
   // any held modifier VKs. Normalize L/R modifiers to a generic one (so "Alt + T"
   // fires on either Alt) and build a display label. Returns { vk, name, mods }.
+  // The trigger name comes from the helper (already platform-correct, e.g. "Right
+  // Cmd"), but modifier labels are composed here, so mac says Option/Cmd not Alt/Win.
+  var IS_MAC = /^Mac/.test(navigator.platform || '');
   var MOD_NORMALIZE = { 16: 16, 160: 16, 161: 16, 17: 17, 162: 17, 163: 17, 18: 18, 164: 18, 165: 18, 91: 91, 92: 91 };
-  var MOD_LABEL = { 16: 'Shift', 17: 'Ctrl', 18: 'Alt', 91: 'Win' };
-  var MOD_ORDER = [17, 18, 16, 91]; // Ctrl, Alt, Shift, Win
+  var MOD_LABEL = IS_MAC
+    ? { 16: 'Shift', 17: 'Ctrl', 18: 'Option', 91: 'Cmd' }
+    : { 16: 'Shift', 17: 'Ctrl', 18: 'Alt', 91: 'Win' };
+  var MOD_ORDER = [17, 18, 16, 91]; // Ctrl, Alt/Option, Shift, Win/Cmd
 
   function composeHotkey(res) {
     var vk = res.vk;

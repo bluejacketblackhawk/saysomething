@@ -20,7 +20,8 @@
  */
 
 const fs = require('fs');
-const { app, ipcMain, session, Notification, dialog } = require('electron');
+const path = require('path');
+const { app, BrowserWindow, ipcMain, session, Notification, dialog } = require('electron');
 
 // Set the app name before anything reads a user path, so Electron's own caches
 // live under %APPDATA%/SaySomething alongside our data (config.js anchors there too).
@@ -49,6 +50,9 @@ const audioSession = safeRequire('./audio-session');
 const windows = safeRequire('./windows');
 const tray = safeRequire('./tray');
 const state = safeRequire('./state');
+const permissions = safeRequire('./permissions');
+
+const IS_DARWIN = process.platform === 'darwin';
 
 function noop() {}
 function logInfo() { if (log && log.info) log.info.apply(log, arguments); }
@@ -282,15 +286,17 @@ function boot() {
   wireSettingsSideEffects();
   safeCall(function () { return state && state.init && state.init(); }, 'state.init');
 
-  // First-run welcome (once). Marked seen immediately so a crash before the user
-  // closes it doesn't re-show forever.
+  // First-run welcome / macOS permissions onboarding.
+  //  - Windows: the one-time intro (unchanged).
+  //  - macOS: a permission-gated onboarding — shown whenever a TCC grant is still
+  //    missing (not just first run), because dictation literally cannot work
+  //    without Input Monitoring + Accessibility + Microphone. It auto-closes the
+  //    moment all three grants land (see wirePermsOnboarding).
   try {
-    if (settings && !settings.welcomed && windows && windows.showWelcome) {
-      windows.showWelcome();
-      if (settingsStore && settingsStore.set) settingsStore.set({ welcomed: true });
-    }
+    wirePermsOnboarding();
+    startOnboarding(settings);
   } catch (e) {
-    logError('first-run welcome failed', e);
+    logError('onboarding wiring failed', e);
   }
 
   logInfo('SaySomething boot: ready');
@@ -373,6 +379,159 @@ function guideDownloadModel(haveOtherModel) {
     ? 'Your selected model isn’t downloaded yet. Open Settings, then Models to get it or pick another.'
     : 'No speech model yet. Open Settings, then Models to download one and you’re good to go.';
   notify('Say Something needs a voice model', body);
+}
+
+// ---------------------------------------------------------------------------
+// welcome / macOS permissions onboarding
+// ---------------------------------------------------------------------------
+//
+// On darwin the welcome window doubles as the TCC onboarding (three grants). It is
+// created HERE (not via windows.js) so it can carry the welcome preload that
+// bridges the perms:* channels — windows.showWelcome() ships no preload and is
+// owned by another lane. The renderer branches on the preload's platform flag, so
+// the same welcome/index.html serves both the Windows intro and the macOS
+// onboarding. See the report for the (optional) windows.js unification.
+
+let onboardingWin = null;
+
+function showOnboarding() {
+  if (onboardingWin && !onboardingWin.isDestroyed()) {
+    try { onboardingWin.show(); onboardingWin.focus(); } catch (e) { /* ignore */ }
+    return onboardingWin;
+  }
+  const rendererDir = path.join(__dirname, '..', 'renderer');
+  const preloadDir = path.join(__dirname, '..', 'preload');
+
+  onboardingWin = new BrowserWindow({
+    width: 480,
+    height: 620,
+    show: false,
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    backgroundColor: '#0B0E14',
+    // Framed (unlike the frameless intro) so the OS close button is an escape
+    // hatch: the "Start dictating" button is gated until every grant lands, and the
+    // app keeps running in the tray if the user closes this to grant later.
+    title: 'Say Something',
+    webPreferences: {
+      preload: path.join(preloadDir, 'welcome.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      spellcheck: false,
+    },
+  });
+
+  onboardingWin.setMenu(null);
+
+  // Lock navigation to the local file (defense-in-depth atop the page CSP).
+  try {
+    const wc = onboardingWin.webContents;
+    wc.on('will-navigate', function (e) { e.preventDefault(); });
+    wc.setWindowOpenHandler(function () { return { action: 'deny' }; });
+  } catch (e) { /* older electron */ }
+
+  onboardingWin.loadFile(path.join(rendererDir, 'welcome', 'index.html')).catch(function (err) {
+    logError('onboarding window failed to load', err);
+  });
+
+  onboardingWin.once('ready-to-show', function () {
+    if (onboardingWin && !onboardingWin.isDestroyed()) {
+      onboardingWin.show();
+      onboardingWin.focus();
+    }
+  });
+  onboardingWin.on('closed', function () { onboardingWin = null; });
+
+  return onboardingWin;
+}
+
+function closeOnboarding() {
+  if (onboardingWin && !onboardingWin.isDestroyed()) {
+    try { onboardingWin.close(); } catch (e) { /* ignore */ }
+  }
+}
+
+function sendToWelcome(channel, payload) {
+  try {
+    if (onboardingWin && !onboardingWin.isDestroyed()) {
+      onboardingWin.webContents.send(channel, payload);
+    }
+  } catch (e) { /* ignore */ }
+}
+
+function markWelcomed() {
+  try { if (settingsStore && settingsStore.set) settingsStore.set({ welcomed: true }); }
+  catch (e) { /* ignore */ }
+}
+
+// Push live grant status to the onboarding window and, once everything is granted,
+// close it. No re-watch needed: state.init() already sent the full watched set
+// (hotkey variants + pad hotkey) and the helper holds that filter internally, so
+// the event tap it creates once Input Monitoring lands uses it as-is. Watching
+// only a subset here would REPLACE the full set and silently kill the drop pad.
+// No-op on win32.
+function wirePermsOnboarding() {
+  if (!IS_DARWIN || !permissions || !permissions.onChange) return;
+  permissions.onChange(function (p) {
+    sendToWelcome(ipc.PERMS_CHANGED, p);
+    if (permissions.allGranted && permissions.allGranted()) {
+      logInfo('permissions: all granted — closing onboarding');
+      closeOnboarding();
+    }
+  });
+}
+
+// Decide whether to show the onboarding. On darwin this is permission-gated (shown
+// whenever a grant is missing, not just first run); on win32 it is the unchanged
+// one-time intro.
+function startOnboarding(settings) {
+  if (IS_DARWIN) {
+    if (!permissions) return;
+    let evaluated = false;
+    const evaluate = function () {
+      if (evaluated) return;
+      evaluated = true;
+      try { if (permissions.recheckMic) permissions.recheckMic(); } catch (e) { /* ignore */ }
+      if (!permissions.allGranted()) {
+        showOnboarding();
+      } else {
+        // Everything is granted, so there is no onboarding to show — but a
+        // menu-bar app that opens NO window on a manual launch looks broken
+        // ("I double-clicked it and nothing happened"). Open Settings when the
+        // user launched it by hand; stay silent for launch-at-login.
+        try {
+          const atLogin = !!(app.getLoginItemSettings && app.getLoginItemSettings().wasOpenedAtLogin);
+          if (!atLogin && windows && windows.createSettings) windows.createSettings();
+        } catch (e) { /* ignore */ }
+      }
+      // The macOS greeting IS the onboarding, so mark welcomed either way and never
+      // fall back to the Windows-flavoured intro on this platform.
+      markWelcomed();
+    };
+    // Prefer to decide after the helper reports listen/ax; fall back on a timer so a
+    // missing/dead helper still lets the user grant mic and read the guidance.
+    if (helper && helper.once) {
+      helper.once('ready', function () {
+        try { if (helper.perms) helper.perms(); } catch (e) { /* ignore */ }
+        setTimeout(evaluate, 250); // let the fresh perms event land first
+      });
+    }
+    setTimeout(evaluate, 2000);
+    return;
+  }
+
+  // Windows: unchanged one-time intro. Marked seen immediately so a crash before
+  // the user closes it doesn't re-show forever.
+  try {
+    if (settings && !settings.welcomed && windows && windows.showWelcome) {
+      windows.showWelcome();
+      markWelcomed();
+    }
+  } catch (e) {
+    logError('first-run welcome failed', e);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -700,6 +859,35 @@ function wireIpc() {
     return restartWhisper(model).then(function () {
       return (server && server.status) ? server.status() : { running: false };
     });
+  });
+
+  // ---- welcome / permissions onboarding (macOS TCC) ----
+  // On win32 these all resolve to "granted" / no-op (permissions.js reports win32),
+  // so registering them unconditionally is harmless and keeps the channel set stable.
+  ipcMain.handle(ipc.PERMS_GET, function () {
+    if (permissions && permissions.get) return permissions.get();
+    return { listen: true, ax: true, mic: true, platform: IS_DARWIN ? 'darwin' : 'win32' };
+  });
+
+  ipcMain.handle(ipc.PERMS_REQUEST, function (_e, kind) {
+    if (!permissions) return { listen: true, ax: true, mic: true, platform: IS_DARWIN ? 'darwin' : 'win32' };
+    try {
+      if (kind === 'mic') {
+        return Promise.resolve(permissions.requestMic()).then(function () { return permissions.get(); });
+      }
+      if (kind === 'listen') permissions.requestListen();
+      else if (kind === 'ax') permissions.requestAx();
+    } catch (e) {
+      logWarn('perms:request failed', e);
+    }
+    return permissions.get();
+  });
+
+  ipcMain.handle(ipc.PERMS_OPEN_PANE, function (_e, kind) {
+    if (permissions && permissions.openPane) {
+      try { permissions.openPane(kind); } catch (e) { logWarn('perms:openPane failed', e); }
+    }
+    return { ok: true };
   });
 }
 

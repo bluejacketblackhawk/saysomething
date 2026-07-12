@@ -10,7 +10,9 @@
   <link rel="stylesheet" href="welcome.css" />
 </head>
 <body>
-  <main class="card">
+  <!-- Intro card: the plain first-run greeting (Windows, and macOS once everything
+       is already granted). welcome.js hides this on darwin when a grant is missing. -->
+  <main class="card" id="intro">
     <div class="mark" aria-hidden="true">
       <svg viewBox="0 0 64 64" width="52" height="52">
         <defs>
@@ -44,6 +46,65 @@
 
     <button class="go" id="go">Got it, let’s go</button>
   </main>
+
+  <!-- Permissions card: the macOS TCC onboarding. Hidden by default; welcome.js
+       reveals it on darwin. Three grants, each with a live status light + a Grant
+       button. "Start dictating" stays disabled until all three are green. -->
+  <main class="card perms-card" id="perms" hidden>
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="48" height="48">
+        <defs>
+          <linearGradient id="wisp2" x1="0" y1="0.5" x2="1" y2="0.5">
+            <stop offset="0" stop-color="#67E8F9"/>
+            <stop offset="0.5" stop-color="#5EEAD4"/>
+            <stop offset="1" stop-color="#A78BFA"/>
+          </linearGradient>
+        </defs>
+        <g fill="url(#wisp2)">
+          <rect x="5"  y="21" width="7" height="22" rx="3.5"/>
+          <rect x="17" y="11" width="7" height="42" rx="3.5"/>
+          <rect x="29" y="17" width="7" height="30" rx="3.5"/>
+          <rect x="41" y="8"  width="7" height="48" rx="3.5"/>
+          <rect x="53" y="22" width="7" height="20" rx="3.5"/>
+        </g>
+      </svg>
+    </div>
+
+    <h1>Three quick OKs</h1>
+    <p class="tag">macOS wants your go-ahead before Say Something can hear you and type for you. It all runs on your Mac, nothing leaves.</p>
+
+    <ul class="perms" id="perm-rows">
+      <li class="perm-row" id="row-mic" data-perm="mic" data-granted="false">
+        <span class="light" aria-hidden="true"></span>
+        <div class="perm-copy">
+          <span class="perm-name">Microphone</span>
+          <span class="perm-why">so it can actually hear you</span>
+        </div>
+        <button class="grant" id="grant-mic" data-perm="mic" type="button">Grant</button>
+      </li>
+      <li class="perm-row" id="row-listen" data-perm="listen" data-granted="false">
+        <span class="light" aria-hidden="true"></span>
+        <div class="perm-copy">
+          <span class="perm-name">Input Monitoring</span>
+          <span class="perm-why">so the hold-to-talk key works in any app</span>
+        </div>
+        <button class="grant" id="grant-listen" data-perm="listen" type="button">Grant</button>
+      </li>
+      <li class="perm-row" id="row-ax" data-perm="ax" data-granted="false">
+        <span class="light" aria-hidden="true"></span>
+        <div class="perm-copy">
+          <span class="perm-name">Accessibility</span>
+          <span class="perm-why">so your words land right where your cursor is</span>
+        </div>
+        <button class="grant" id="grant-ax" data-perm="ax" type="button">Grant</button>
+      </li>
+    </ul>
+
+    <p class="perms-hint" id="perms-hint">Each Grant opens System Settings. Flick the switch on for Say Something, then hop back here. The lights turn on by themselves.</p>
+
+    <button class="go" id="start" type="button" disabled>Start dictating</button>
+  </main>
+
   <script src="welcome.js"></script>
 </body>
 </html>

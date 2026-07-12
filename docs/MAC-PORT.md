@@ -161,6 +161,17 @@ The owner has a paid Apple Developer account (used to ship an iOS app), so use t
 
 This app ships as a **direct-download `.dmg`, not a Mac App Store app** (the global event taps + input injection are not allowed in the MAS sandbox). So you need a **Developer ID Application** certificate. Note: that is a *different* cert from the "Apple Distribution" cert used for the iOS App Store, but it is created under the same membership.
 
+### Local dev builds today, before the Developer ID cert exists
+
+The current build machine's keychain has `Apple Development` and `Apple Distribution` identities but no `Developer ID Application` one. `package.json`'s `build.mac` therefore pins `"identity": null` — this is a hard "do not sign" switch read directly by electron-builder's mac packager, not just a "no identity found" fallback. That distinction matters here: without it, electron-builder's identity search falls back to *any* non-"Developer ID"/non-MAS-prefixed codesigning identity in the keychain, which on this machine would silently grab `Apple Distribution` (wrong cert — that's for App Store submissions, not direct distribution, and Gatekeeper will not trust it the way a Developer ID cert is trusted). `"identity": null` avoids that trap and gives a deterministic, always-works `npm run dist` today: electron-builder skips its own signing step, and macOS's arm64 loader applies an implicit ad-hoc signature at first launch so the unpacked `.app` still runs locally (Gatekeeper/notarization checks are what remain unsatisfied, not launchability). `hardenedRuntime` + the two entitlements files stay configured so the packaging shape is already correct; nothing else needs to change when the cert arrives.
+
+**To flip to proper Developer ID signing + notarization later:**
+1. Install the `Developer ID Application` certificate (see "One-time setup" below) and confirm it with `security find-identity -v -p codesigning`.
+2. In `package.json`'s `build.mac`, delete the `"identity": null` line (or replace it with the exact string `"Developer ID Application: <Name> (<TEAMID>)"`). That one JSON edit re-enables electron-builder's normal auto-discovery, which will now find the correct cert instead of falling back to `Apple Distribution`.
+3. Add `"notarize": true` next to `hardenedRuntime` (see "package.json `mac`" below).
+4. Export the three `APPLE_*` env vars below at build time.
+5. `npm run dist` — same command as today, now producing a signed + notarized `.dmg`/`.zip`.
+
 ### One-time setup
 1. In the Apple Developer portal (Certificates, Identifiers & Profiles) create a **Developer ID Application** certificate and install it in the build Mac's login keychain. Verify with `security find-identity -v -p codesigning`, which should list `Developer ID Application: <name> (<TEAMID>)`.
 2. Create an app-specific password for the Apple ID at appleid.apple.com (or an App Store Connect API key, better for CI).

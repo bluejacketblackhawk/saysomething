@@ -35,13 +35,23 @@ function noop() {}
 const FILE = path.join(config.USER_DATA, 'settings.json');
 const TMP = FILE + '.tmp';
 
+const IS_MAC = process.platform === 'darwin';
+
 const DEFAULTS = {
   // `mods` (issue #1): generic modifier VKs that must be held with `vk` (Ctrl=17,
   // Alt=18, Shift=16, Win=91). Empty => a bare key/modifier, the historical default.
-  hotkey: { vk: 163, name: 'Right Ctrl', mods: [] },
+  // VKs are always Windows Virtual-Key numbers (the mac helper translates at the
+  // boundary). Defaults differ by platform: MacBook keyboards have no Right Ctrl,
+  // so darwin defaults to Right Cmd (vk 92). Saved settings still deep-merge over
+  // these, and validation (clampInt/coerceMods) accepts both key sets.
+  hotkey: IS_MAC
+    ? { vk: 92, name: 'Right Cmd', mods: [] }
+    : { vk: 163, name: 'Right Ctrl', mods: [] },
   // Drop pad hotkey (v0.4): hold this instead of the main hotkey → speak → a
   // draggable, auto-copied pad appears to place the text wherever you want.
-  padHotkey: { vk: 165, name: 'Right Alt', mods: [] },
+  padHotkey: IS_MAC
+    ? { vk: 165, name: 'Right Option', mods: [] }
+    : { vk: 165, name: 'Right Alt', mods: [] },
   pad: { enabled: true },
   mic: { deviceId: 'default', warm: true, preRollMs: 800 },
   model: 'small.en',

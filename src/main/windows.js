@@ -127,7 +127,7 @@ function createOverlay() {
 
   // Top-most above virtually everything, and click-through.
   try { overlayWin.setAlwaysOnTop(true, 'screen-saver'); } catch (e) { /* older electron */ }
-  overlayWin.setIgnoreMouseEvents(true);
+  try { overlayWin.setIgnoreMouseEvents(true); } catch (e) { /* platform */ }
   try { overlayWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); } catch (e) { /* platform */ }
   overlayWin.setMenu(null);
 
@@ -148,7 +148,8 @@ function createOverlay() {
 function showOverlay() {
   if (!overlayWin || overlayWin.isDestroyed()) return;
   positionOverlay();
-  if (!overlayWin.isVisible()) overlayWin.showInactive();
+  // showInactive() shows without focusing on every platform; guard defensively.
+  if (!overlayWin.isVisible()) { try { overlayWin.showInactive(); } catch (e) { /* ignore */ } }
 }
 
 /** Hide the overlay (the window keeps living to host the mic/worklet). */
@@ -163,7 +164,11 @@ function hideOverlay() {
 
 function windowIcon() {
   try {
-    const img = nativeImage.createFromPath(path.join(ASSETS_DIR, 'SaySomething.ico'));
+    // .ico is a Windows format; on macOS use the PNG. (BrowserWindow `icon` is
+    // ignored on macOS anyway — the Dock/app icon comes from the bundle — so this
+    // is harmless there, but we still hand it a valid image.)
+    const file = process.platform === 'darwin' ? 'SaySomething.png' : 'SaySomething.ico';
+    const img = nativeImage.createFromPath(path.join(ASSETS_DIR, file));
     if (img && !img.isEmpty()) return img;
   } catch (e) { /* ignore */ }
   return undefined;
