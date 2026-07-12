@@ -4,7 +4,7 @@
 
 *You're sitting there quiet all day. Say Something.*
 
-### Hold a key, talk, your words show up. Anywhere in Windows or macOS.
+### Free, local transcription. Speak anywhere, drop anywhere.
 
 **Say Something** lets you talk instead of type. Hold **Right Ctrl** (Windows) or **Right Cmd** (Mac) in any app, say your thing, let go, and the cleaned-up text drops in at your cursor about a second later. It runs 100% on your machine. Free, open-source, no account, no cloud, no subscription, no telemetry. None of that.
 
@@ -18,7 +18,7 @@
 
 <img src="assets/demo.gif" alt="Say Something: talk, catch your words in the floating drop pad, and drag them into any text box" width="720" />
 
-<em>Talk anywhere, catch your words in the pad, then drag them exactly where you want. No other dictation tool lets you aim.</em>
+<em>Catch your words in the floating pad, then drag it onto any field and let go. No other dictation tool lets you aim.</em>
 
 <br /><br />
 
