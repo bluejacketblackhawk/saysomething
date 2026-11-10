@@ -15,7 +15,7 @@
  *    leave the machine no matter what a setting or hand-edited file says.
  *  - Rewrite must NEVER lose a dictation. `rewrite()` never rejects and never
  *    throws: on timeout / connection-refused / non-200 / empty / garbage /
- *    wildly-oversized output it resolves to `{ text: null, reason }` and the
+ *    wildly-oversized / drastically-shrunk output it resolves to `{ text: null, reason }` and the
  *    caller falls back to the un-rewritten formatted text.
  *  - Zero runtime npm deps: Node's built-in global `fetch` + `AbortSignal`.
  *  - The response sanitiser (`sanitize`) is a PURE function, exported and
@@ -36,6 +36,22 @@ var DEFAULT_TIMEOUT_MS = 10000;
 // A rewrite more than this multiple of the input length is treated as the model
 // having gone off the rails (hallucinated an essay) -> discard, use original.
 var MAX_GROWTH = 4;
+
+// Shrink guard (WS-1): a rewrite shorter than this fraction of the input is
+// treated as the model having dropped content -> discard, use original. The
+// "keep the same length" styles get the strict floor; the styles whose prompt
+// asks for concision (professional, bullets) may compress further. Inputs
+// shorter than SHRINK_MIN_INPUT characters are exempt: on a handful of
+// characters a ratio says nothing (e.g. "yes yes yes" -> "Yes.").
+var MIN_KEEP_RATIO = 0.4;
+var MIN_KEEP_RATIO_CONCISE = 0.2;
+var CONCISE_STYLES = { professional: true, bullets: true };
+var SHRINK_MIN_INPUT = 40;
+
+// A candidate "meta" paragraph or preamble is only stripped when most of its
+// words are NOT in the user's input (WS-1). At or above this fraction of its
+// words appearing in the input, it is the user's own dictation and is kept.
+var DICTATED_OVERLAP = 0.5;
 
 // ---------------------------------------------------------------------------
 // Rewrite styles
@@ -178,10 +194,41 @@ function stripThink(s) {
 var TRAILING_META_RE =
   /^(?:i made\b|i changed\b|i fixed\b|i've\b|i have\b|note:|changes made\b|this version\b|this rewrite\b)/i;
 
+// Lower-cased word tokens (letters, digits, apostrophes; smart apostrophes
+// folded to ASCII). Used only for the "did the user say this?" overlap check.
+function words(s) {
+  if (typeof s !== 'string') return [];
+  return s.toLowerCase().replace(/[\u2018\u2019]/g, "'").match(/[a-z0-9']+/g) || [];
+}
+
+// Fraction (0..1) of the words in `fragment` that also occur in `original`.
+// Returns -1 when there is no original to compare against (caller decides).
+function overlapWithOriginal(fragment, original) {
+  var ow = words(original);
+  if (ow.length === 0) return -1;
+  var fw = words(fragment);
+  if (fw.length === 0) return 0;
+  var set = {};
+  for (var i = 0; i < ow.length; i++) set[ow[i]] = true;
+  var hit = 0;
+  for (var j = 0; j < fw.length; j++) if (set[fw[j]]) hit++;
+  return hit / fw.length;
+}
+
+// True when `fragment` reads as the user's own dictation, i.e. most of its words
+// are in the input. With no input to compare against, returns false (the old,
+// pattern-only behaviour), which only happens in unit tests: rewrite() always
+// passes the original.
+function isDictated(fragment, original) {
+  return overlapWithOriginal(fragment, original) >= DICTATED_OVERLAP;
+}
+
 // Best-effort: strip a FINAL paragraph (after a blank line) that is clearly a
 // model explanation rather than content. Only the last paragraph is considered,
-// and only when it opens with a high-signal meta phrase; otherwise keep as-is.
-function stripTrailingExplanation(s) {
+// only when it opens with a high-signal meta phrase, AND (WS-1) only when the
+// paragraph is not the user's own dictation. "I have a meeting at three." opens
+// with a meta phrase but its words are in the input, so it is kept.
+function stripTrailingExplanation(s, original) {
   var re = /\n[ \t]*\n/g;
   var lastBoundary = -1;
   var m;
@@ -191,7 +238,7 @@ function stripTrailingExplanation(s) {
   }
   if (lastBoundary === -1) return s;
   var tail = s.slice(lastBoundary);
-  if (TRAILING_META_RE.test(tail.replace(/^\s+/, ''))) {
+  if (TRAILING_META_RE.test(tail.replace(/^\s+/, '')) && !isDictated(tail, original)) {
     return s.slice(0, lastBoundary).replace(/\s+$/, '');
   }
   return s;
@@ -205,12 +252,18 @@ function stripCodeFences(s) {
   return s.replace(/^\s*```[^\n]*\n/, '').replace(/\n?```\s*$/, '');
 }
 
-function stripPreamble(s) {
+// Strip a leading conversational preamble / label. WS-1: a matched prefix whose
+// words are mostly in the user's input ("Here is the revised schedule: ...")
+// was dictated, not added by the model, so it is kept.
+function stripPreamble(s, original) {
   var before;
   do {
     before = s;
-    s = s.replace(PREAMBLE_RE, '');
-    s = s.replace(LABEL_RE, '');
+    var res = [PREAMBLE_RE, LABEL_RE];
+    for (var i = 0; i < res.length; i++) {
+      var m = s.match(res[i]);
+      if (m && m[0] && !isDictated(m[0], original)) s = s.slice(m[0].length);
+    }
   } while (s !== before);
   return s;
 }
@@ -242,13 +295,15 @@ function stripWrappingQuotes(s) {
  * PURE: no I/O, no globals. Exported for test/rewrite-test.js.
  *
  * @param {string} raw       the model's raw output
- * @param {string} [original] the pre-rewrite formatted text (for the size guard)
+ * @param {string} [original] the pre-rewrite formatted text. Used for the size
+ *   guards and to recognise the user's own words so they are never stripped.
+ * @param {{style?: string}} [opts] the rewrite style (sets the shrink floor)
  * @returns {{text: (string|null), reason: string}}
  *   `text` is the cleaned rewrite, or null when the response must be discarded
- *   (empty / non-string / oversized). `reason` is a short machine tag:
- *   'ok' | 'non-string' | 'empty' | 'oversized'.
+ *   (empty / non-string / oversized / shrunk). `reason` is a short machine tag:
+ *   'ok' | 'non-string' | 'empty' | 'oversized' | 'shrunk'.
  */
-function sanitize(raw, original) {
+function sanitize(raw, original, opts) {
   if (typeof raw !== 'string') return { text: null, reason: 'non-string' };
 
   // Iterate: a model may nest wrappers in any order (preamble around a fenced
@@ -262,9 +317,9 @@ function sanitize(raw, original) {
     before = s;
     s = stripThink(s).trim();
     s = stripCodeFences(s).trim();
-    s = stripPreamble(s).trim();
+    s = stripPreamble(s, original).trim();
     s = stripWrappingQuotes(s).trim();
-    s = stripTrailingExplanation(s).trim();
+    s = stripTrailingExplanation(s, original).trim();
     guard++;
   } while (s !== before && guard < 6);
 
@@ -273,6 +328,14 @@ function sanitize(raw, original) {
   var origLen = (typeof original === 'string') ? original.trim().length : 0;
   if (origLen > 0 && s.length > origLen * MAX_GROWTH) {
     return { text: null, reason: 'oversized' };
+  }
+
+  // Shrink guard (WS-1): rewrite must never lose a dictation. A result far
+  // shorter than the input means the model dropped content -> use original.
+  if (origLen >= SHRINK_MIN_INPUT) {
+    var style = opts && opts.style;
+    var floor = CONCISE_STYLES[style] ? MIN_KEEP_RATIO_CONCISE : MIN_KEEP_RATIO;
+    if (s.length < origLen * floor) return { text: null, reason: 'shrunk' };
   }
 
   return { text: s, reason: 'ok' };
@@ -449,7 +512,7 @@ async function rewrite(text, opts) {
   }
 
   var raw = (api === 'openai') ? extractOpenAIContent(body) : extractContent(body);
-  return sanitize(raw, text);
+  return sanitize(raw, text, { style: opts.style });
 }
 
 // Ollama /api/chat (stream:false) returns { message: { content } }. Be tolerant
@@ -481,6 +544,7 @@ module.exports = {
     stripThink: stripThink,
     stripCodeFences: stripCodeFences,
     stripPreamble: stripPreamble,
+    overlapWithOriginal: overlapWithOriginal,
     stripWrappingQuotes: stripWrappingQuotes,
     stripTrailingExplanation: stripTrailingExplanation,
     extractContent: extractContent,

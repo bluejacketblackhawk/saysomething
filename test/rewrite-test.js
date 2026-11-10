@@ -151,6 +151,53 @@ eq(text('We ship Friday.\n\nWe also ship Monday.'), 'We ship Friday.\n\nWe also 
 eq(text('I made a promise to call you.'), 'I made a promise to call you.',
    'trailing: no blank-line boundary -> single paragraph kept even if it opens with a meta word');
 
+// ---- WS-1: trailing strip must never delete dictated content ----------------
+// Repro from the fork review: the user dictated two paragraphs and the second
+// one opens with "I have". A model that returns them unchanged used to have
+// the final paragraph stripped as "model commentary", losing the user's words.
+var twoParas = "Here's the plan.\n\nI have a meeting at three.";
+eq(text(twoParas, twoParas), twoParas,
+   'ws1: dictated final paragraph opening "I have" is kept when it is in the input');
+eq(text("Here's the plan.\n\nI've got a meeting at three.", "here's the plan\n\ni've got a meeting at 3"),
+   "Here's the plan.\n\nI've got a meeting at three.",
+   'ws1: lightly cleaned-up dictated "I\'ve" paragraph is kept');
+eq(text('We ship Friday.\n\nNote: the office is closed Monday.', 'we ship friday\n\nnote the office is closed monday'),
+   'We ship Friday.\n\nNote: the office is closed Monday.',
+   'ws1: dictated "Note:" paragraph is kept');
+eq(text('We ship Friday.\n\nThis version of the app is final.', 'we ship friday. this version of the app is final'),
+   'We ship Friday.\n\nThis version of the app is final.',
+   'ws1: dictated "This version" paragraph is kept');
+// Genuine commentary that is NOT in the input is still stripped.
+eq(text('We ship Friday.\n\nI made the following changes: fixed capitalization and added a period.', 'we ship friday'),
+   'We ship Friday.',
+   'ws1: real model commentary absent from the input is still stripped');
+eq(text('Buy milk and eggs.\n\nI have corrected the grammar and punctuation.', 'buy milk and eggs'),
+   'Buy milk and eggs.',
+   'ws1: "I have corrected..." commentary absent from the input is still stripped');
+
+// ---- WS-1: preamble strip must not delete dictated content -----------------
+eq(text('Here is the revised schedule: Monday and Tuesday.', 'here is the revised schedule: monday and tuesday'),
+   'Here is the revised schedule: Monday and Tuesday.',
+   'ws1: dictated "Here is the revised ..." opening is kept when it is in the input');
+eq(text('Here is the revised text: Monday and Tuesday.', 'monday and tuesday'),
+   'Monday and Tuesday.',
+   'ws1: a model preamble absent from the input is still stripped');
+
+// ---- WS-1: shrink guard ------------------------------------------------------
+var longInput = 'We need to order more paper for the printer on the second floor, ' +
+  'call the landlord about the heating, and move the team meeting to Thursday afternoon.';
+eq(text('Okay.', longInput), null, 'ws1: drastic shrink is rejected -> null (fallback to original)');
+eq(reason('Okay.', longInput), 'shrunk', 'ws1: drastic shrink reason');
+eq(reason('We need more printer paper, a call to the landlord about heating, and the meeting moved to Thursday.', longInput), 'ok',
+   'ws1: normal tightening is accepted');
+// Bullets / professional styles legitimately compress more.
+eq(sanitize('- Order printer paper\n- Call landlord re heating\n- Meeting to Thu PM', longInput, { style: 'bullets' }).reason, 'ok',
+   'ws1: bullets style allows more compression');
+eq(sanitize('- Paper', longInput, { style: 'bullets' }).reason, 'shrunk',
+   'ws1: even bullets style rejects a near-total loss');
+// Very short inputs are exempt (ratios are meaningless on a few characters).
+eq(reason('Yes.', 'yes yes yes'), 'ok', 'ws1: short input exempt from shrink guard');
+
 // ---- internals ---------------------------------------------------------------
 eq(rewrite._internals.clampTimeout(999999), rewrite.HARD_TIMEOUT_MS, 'clamp: over-cap timeout clamped to hard cap');
 eq(rewrite._internals.clampTimeout(-5), 10000, 'clamp: non-positive -> default');
